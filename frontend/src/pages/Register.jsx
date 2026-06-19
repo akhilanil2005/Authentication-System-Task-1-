@@ -17,7 +17,7 @@ function Register() {
     }
 
     try {
-      const res = await axios.post("https://authentication-system-2201.onrender.com/register", {
+      const res = await axios.post("http://localhost:5000/register", {
         name,
         email,
         password,
