@@ -75,12 +75,22 @@ app.post("/login", async (req, res) => {
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role, },
              process.env.JWT_SECRET,
-            { expiresIn: "1h" }
+            { expiresIn: "10s" }
         );
+        const refreshToken = jwt.sign(
+        {
+        id: user.id,
+        email: user.email,
+        role: user.role,
+        },
+        process.env.JWT_REFRESH_SECRET,
+        { expiresIn: "7d" }
+    );
 
         res.json({
             message: "Login Successful",
             token,
+            refreshToken,
             role: user.role,
         });
 
@@ -88,6 +98,34 @@ app.post("/login", async (req, res) => {
         console.error(err);
         res.status(500).send("Login failed");
     }
+});
+app.post("/refresh", (req, res) => {
+  const { refreshToken } = req.body;
+
+  if (!refreshToken) {
+    return res.status(401).json("Refresh token required");
+  }
+
+  try {
+    const user = jwt.verify(
+      refreshToken,
+      process.env.JWT_REFRESH_SECRET
+    );
+
+    const newToken = jwt.sign(
+  {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  },
+  process.env.JWT_SECRET,
+  { expiresIn: "10s" }
+);
+
+    res.json({ token: newToken });
+  } catch (err) {
+    return res.status(403).json("Invalid refresh token");
+  }
 });
 
 function verifyToken(req, res, next) {
@@ -103,7 +141,7 @@ function verifyToken(req, res, next) {
     const verified = jwt.verify(token, process.env.JWT_SECRET);
     req.user = verified;
     next();
-  } catch {
+  } catch (err) {
     return res.status(401).json("Invalid token");
   }
 }
