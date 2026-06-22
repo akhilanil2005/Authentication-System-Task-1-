@@ -73,14 +73,15 @@ app.post("/login", async (req, res) => {
         }
 
         const token = jwt.sign(
-            { id: user.id, email: user.email },
-            "mysecretkey",
+            { id: user.id, email: user.email, role: user.role, },
+             process.env.JWT_SECRET,
             { expiresIn: "1h" }
         );
 
         res.json({
             message: "Login Successful",
-            token
+            token,
+            role: user.role,
         });
 
     } catch (err) {
@@ -88,6 +89,24 @@ app.post("/login", async (req, res) => {
         res.status(500).send("Login failed");
     }
 });
+
+function verifyToken(req, res, next) {
+  const authHeader = req.headers.authorization;
+
+  if (!authHeader) {
+    return res.status(401).json("Access denied");
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  try {
+    const verified = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = verified;
+    next();
+  } catch {
+    return res.status(401).json("Invalid token");
+  }
+}
 app.get("/users", async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM users");
@@ -98,27 +117,18 @@ app.get("/users", async (req, res) => {
     }
 });
 
-const verifyToken = (req, res, next) => {
-    const token = req.headers.authorization;
-
-    if (!token) {
-        return res.status(401).send("Access Denied");
-    }
-
-    try {
-        const verified = jwt.verify(token, "mysecretkey");
-        req.user = verified;
-        next();
-    } catch (err) {
-        res.status(400).send("Invalid Token");
-    }
-};
-
 app.get("/dashboard", verifyToken, (req, res) => {
     res.json({
         message: "Welcome to Dashboard",
         user: req.user
     });
+});
+
+app.get("/profile", verifyToken, (req, res) => {
+  res.json({
+    message: "Protected Profile",
+    user: req.user
+  });
 });
 
 const PORT = process.env.PORT || 5000;

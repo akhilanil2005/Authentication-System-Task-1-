@@ -1,7 +1,12 @@
 import { useEffect } from "react";
+import api from "../api/axios";
+import {useState} from "react";
 import { useNavigate } from "react-router-dom";
+import { useSelector } from "react-redux";
+
 
 function Dashboard() {
+  const [user, setUser] = useState(null);
   const navigate = useNavigate();
   
   useEffect(() => {
@@ -11,14 +16,40 @@ function Dashboard() {
       navigate("/login");
     }
   }, []);
+  useEffect(() => {
+  const getProfile = async () => {
+    try {
+      const res = await api.get("/profile");
+      setUser(res.data.user);
+    } catch (err) {
+      console.log(err);
+    }
+  };
+
+  getProfile();
+}, []);
 
   return (
     <div className="container">
+      <div className="navbar">
+        <h2>Authentication System</h2>
+  <span>{user?.email}</span>
+</div>
       <div className="card">
         <h1>Dashboard</h1>
-        <p>Welcome, User</p>
-        <p>You have successfully logged in to the system.</p>
 
+        <div className="user-info">
+          <h3>User Information</h3>
+          <p><strong>Email:</strong> {user?.email}</p>
+          <div>
+            <h3>
+  Welcome, {user?.role === "admin" ? "Administrator" : "User"}
+</h3>
+          {user?.role === "admin" && (
+            <button onClick={() => navigate("/admin")} className="admin-btn"> Go To Admin Panel </button>
+)}
+</div>
+        </div>
         <button
           onClick={() => {
             localStorage.removeItem("token");
@@ -31,6 +62,5 @@ function Dashboard() {
     </div>
   );
 }
-
 
 export default Dashboard;

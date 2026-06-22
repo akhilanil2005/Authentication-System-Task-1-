@@ -8,13 +8,14 @@ function Register() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const navigate = useNavigate();
+  const [formError, setFormError] = useState("");
 
   const handleRegister = async () => {
 
     if (!name || !email || !password) {
-    alert("Please fill in all fields");
-    return;
-    }
+  setFormError("Please fill in all fields");
+  return;
+}
 
     try {
       const res = await axios.post("http://localhost:5000/register", {
@@ -22,12 +23,14 @@ function Register() {
         email,
         password,
       });
-      alert("Registration successful!");
-      navigate("/login");
+      setFormError("Registration successful! Redirecting to login...");
+setTimeout(() => {
+              navigate("/login");
+                  }, 1500);
     } catch (err) {
       console.log("FULL ERROR:", err);
       if (err.response) {
-        alert(err.response.data?.message || err.message); // shows "Registration failed" or "Email already exists"
+        setFormError(err.response.data?.message || err.message); // shows "Registration failed" or "Email already exists"
       } else {
         alert("Network error - backend not running?");
       }
@@ -58,7 +61,11 @@ function Register() {
         onChange={(e) => setPassword(e.target.value)}
       />
       <br /><br />
-
+      {formError && (
+  <div className="error-message">
+     {formError}
+  </div>
+)}
       <button onClick={handleRegister}>
         Register
       </button>

@@ -1,30 +1,32 @@
 import { useState } from "react";
-import axios from "axios";
 import { useNavigate, Link } from "react-router-dom";
+import { useDispatch, useSelector } from "react-redux";
+import { loginUser } from "../features/auth/authSlice";
 
 function Login() {
+    const dispatch = useDispatch();
+    const { loading, error } = useSelector(
+    (state) => state.auth
+    );
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
      const [password, setPassword] = useState("");
-
+const [formError, setFormError] = useState("");
   const handleLogin = async () => {
 
     if (!email || !password) {
-    alert("Please enter email and password");
+      setFormError("Please fill in all fields");
     return;
     }
 
     try {
-      const res = await axios.post(
-        "http://localhost:5000/login",
-        {
-          email,
-          password,
-        }
-      );
+      const result = await dispatch(
+  loginUser({ email, password })
+);
 
-      localStorage.setItem("token", res.data.token);
-        navigate("/dashboard");
+if (loginUser.fulfilled.match(result)) {
+  navigate("/dashboard");
+}
     } catch (err) {
       alert(err.response?.data || "Login failed");
     }
@@ -48,8 +50,11 @@ function Login() {
         onChange={(e) => setPassword(e.target.value)}
       />
       <br /><br />
-
-      <button onClick={handleLogin}>Login</button>
+        {formError && <p className="error-message">{formError}</p>}
+      <button onClick={handleLogin} disabled={loading}>
+  {loading ? "Logging in..." : "Login"}
+</button>
+{error && <p>{error}</p>}
       <p style={{ marginTop: "15px" }}>
   Don't have an account?{" "}
   <Link to="/">Register</Link>
