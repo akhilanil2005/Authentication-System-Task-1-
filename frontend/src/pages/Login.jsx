@@ -12,26 +12,17 @@ function Login() {
     const [email, setEmail] = useState("");
      const [password, setPassword] = useState("");
 const [formError, setFormError] = useState("");
+
   const handleLogin = async () => {
+    setFormError("");
+  const result = await dispatch(
+    loginUser({ email, password })
+  );
 
-    if (!email || !password) {
-      setFormError("Please fill in all fields");
-    return;
-    }
-
-    try {
-      const result = await dispatch(
-  loginUser({ email, password })
-);
-
-if (loginUser.fulfilled.match(result)) {
-  navigate("/dashboard");
-}
-    } catch (err) {
-      alert(err.response?.data || "Login failed");
-    }
-  };
-
+  if (loginUser.fulfilled.match(result)) {
+    navigate("/dashboard");
+  } 
+};
   return (
     <div className="container">
         <div className="card">
@@ -50,7 +41,6 @@ if (loginUser.fulfilled.match(result)) {
         onChange={(e) => setPassword(e.target.value)}
       />
       <br /><br />
-        {formError && <p className="error-message">{formError}</p>}
       <button onClick={handleLogin} disabled={loading}>
   {loading ? "Logging in..." : "Login"}
 </button>

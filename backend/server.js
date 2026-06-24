@@ -3,10 +3,22 @@ const jwt = require("jsonwebtoken");
 const cors = require("cors");
 const express = require("express");
 const pool = require("./config/db");
+const {
+  registerSchema,
+  loginSchema,
+} = require("./validation/authValidation");
+const rateLimit = require("express-rate-limit");
+
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  message: "Too many login attempts. Please try again later.",
+});
 
 const app = express();
 app.use(cors());
 app.use(express.json());
+
 app.get("/", async (req, res) => {
     try {
         const result = await pool.query("SELECT * FROM users");
@@ -17,8 +29,16 @@ app.get("/", async (req, res) => {
     }
 });
 
-app.post("/register", async (req, res) => {
+app.post("/register", async (req, res, next) => {
     try {
+        const { error } = registerSchema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({
+      success: false,
+      message: error.details[0].message,
+    });
+}
         const { name, email, password } = req.body;
 
         const existingUser = await pool.query(
@@ -43,13 +63,18 @@ if (existingUser.rows.length > 0) {
         res.json(result.rows[0]);
 
     } catch (err) {
-    console.log(err);
-    console.log(err.response);
-    res.status(500).send(err.message);
+        next(err);
 }
 });
-app.post("/login", async (req, res) => {
+app.post("/login", authLimiter, async (req, res, next) => {
     try {
+        const { error } = loginSchema.validate(req.body);
+    if (error) {
+        return res.status(400).json({
+        success: false,
+        message: error.details[0].message,
+  });
+}
         const { email, password } = req.body;
 
         const result = await pool.query(
@@ -67,15 +92,13 @@ app.post("/login", async (req, res) => {
             password,
             user.password
         );
-
         if (!validPassword) {
-            return res.status(400).send("Invalid Password");
-        }
-
+  return res.status(401).json({ message: "Invalid Password" });
+}
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role, },
              process.env.JWT_SECRET,
-            { expiresIn: "10s" }
+            { expiresIn: "1h" }
         );
         const refreshToken = jwt.sign(
         {
@@ -86,6 +109,10 @@ app.post("/login", async (req, res) => {
         process.env.JWT_REFRESH_SECRET,
         { expiresIn: "7d" }
     );
+    await pool.query(
+  "UPDATE users SET refresh_token = $1 WHERE id = $2",
+  [refreshToken, user.id]
+);
 
         res.json({
             message: "Login Successful",
@@ -95,11 +122,10 @@ app.post("/login", async (req, res) => {
         });
 
     } catch (err) {
-        console.error(err);
-        res.status(500).send("Login failed");
+        next(err);
     }
 });
-app.post("/refresh", (req, res) => {
+app.post("/refresh", async (req, res) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
@@ -111,6 +137,16 @@ app.post("/refresh", (req, res) => {
       refreshToken,
       process.env.JWT_REFRESH_SECRET
     );
+    const result = await pool.query(
+  "SELECT refresh_token FROM users WHERE id = $1",
+  [user.id]
+);
+
+if (result.rows[0].refresh_token !== refreshToken) {
+  return res.status(403).json({
+    message: "Invalid refresh token",
+  });
+}
 
     const newToken = jwt.sign(
   {
@@ -119,11 +155,30 @@ app.post("/refresh", (req, res) => {
     role: user.role,
   },
   process.env.JWT_SECRET,
-  { expiresIn: "10s" }
+  { expiresIn: "1h" }
 );
 
-    res.json({ token: newToken });
-  } catch (err) {
+    const newRefreshToken = jwt.sign(
+  {
+    id: user.id,
+    email: user.email,
+    role: user.role,
+  },
+  process.env.JWT_REFRESH_SECRET,
+  { expiresIn: "7d" }
+);
+
+await pool.query(
+  "UPDATE users SET refresh_token = $1 WHERE id = $2",
+  [newRefreshToken, user.id]
+);
+
+res.json({
+  token: newToken,
+  refreshToken: newRefreshToken,
+});
+  } 
+  catch (err) {
     return res.status(403).json("Invalid refresh token");
   }
 });
@@ -166,6 +221,14 @@ app.get("/profile", verifyToken, (req, res) => {
   res.json({
     message: "Protected Profile",
     user: req.user
+  });
+});
+app.use((err, req, res, next) => {
+  console.error(err);
+
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || "Internal Server Error",
   });
 });
 

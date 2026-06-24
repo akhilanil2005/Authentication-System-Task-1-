@@ -26,21 +26,29 @@ api.interceptors.response.use(
     ) {
       originalRequest._retry = true;
 
-      const refreshToken =
-        localStorage.getItem("refreshToken");
-
       try {
+        const refreshToken =
+          localStorage.getItem("refreshToken");
+
         const res = await axios.post(
           "http://localhost:5000/refresh",
-          { refreshToken }
+          {
+            refreshToken,
+          }
         );
 
-        const newToken = res.data.token;
+        localStorage.setItem(
+          "token",
+          res.data.token
+        );
 
-        localStorage.setItem("token", newToken);
+        localStorage.setItem(
+          "refreshToken",
+          res.data.refreshToken
+        );
 
         originalRequest.headers.Authorization =
-          `Bearer ${newToken}`;
+          `Bearer ${res.data.token}`;
 
         return api(originalRequest);
       } catch (err) {

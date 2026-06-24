@@ -15,10 +15,19 @@ export const loginUser = createAsyncThunk(
 
       return response.data;
     } catch (error) {
-      return thunkAPI.rejectWithValue(
-        error.response?.data || "Login failed"
-      );
-    }
+      console.log(error.response?.data);
+      if (error.response?.status === 429) {
+  return thunkAPI.rejectWithValue(
+    "Too many login attempts. Please try again later."
+  );
+}
+
+return thunkAPI.rejectWithValue(
+  error.response?.data?.message ||
+  error.response?.data ||
+  "Login failed"
+);
+}
   }
 );
 
@@ -38,6 +47,7 @@ const authSlice = createSlice({
       state.role = action.payload.role;
 
       localStorage.setItem("token", action.payload.token);
+      localStorage.setItem("refreshToken", action.payload.refreshToken);
       localStorage.setItem("role", action.payload.role);
     },
 
@@ -46,6 +56,7 @@ const authSlice = createSlice({
       state.role = null;
 
       localStorage.removeItem("token");
+      localStorage.removeItem("refreshToken");
       localStorage.removeItem("role");
     },
   },
