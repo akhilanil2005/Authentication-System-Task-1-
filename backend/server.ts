@@ -1,13 +1,13 @@
-const bcrypt = require("bcrypt");
-const jwt = require("jsonwebtoken");
-const cors = require("cors");
-const express = require("express");
-const pool = require("./config/db");
-const {
+import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import cors from "cors";
+import pool from "./config/db";
+import rateLimit from "express-rate-limit";
+import express, { Request, Response, NextFunction } from "express";
+import {
   registerSchema,
   loginSchema,
-} = require("./validation/authValidation");
-const rateLimit = require("express-rate-limit");
+} from "./validation/authValidation";
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -19,7 +19,7 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-app.get("/", async (req, res) => {
+app.get("/", async (req: Request, res: Response) => {
     try {
         const result = await pool.query("SELECT * FROM users");
         res.send(result.rows);
@@ -29,7 +29,13 @@ app.get("/", async (req, res) => {
     }
 });
 
-app.post("/register", async (req, res, next) => {
+app.post(
+  "/register",
+  async (
+    req: Request,
+    res: Response,
+    next: NextFunction
+  ) => {
     try {
         const { error } = registerSchema.validate(req.body);
 
@@ -66,7 +72,7 @@ if (existingUser.rows.length > 0) {
         next(err);
 }
 });
-app.post("/login", authLimiter, async (req, res, next) => {
+app.post("/login", authLimiter, async (req: Request, res: Response, next: NextFunction) => {
     try {
         const { error } = loginSchema.validate(req.body);
     if (error) {
@@ -97,7 +103,7 @@ app.post("/login", authLimiter, async (req, res, next) => {
 }
         const token = jwt.sign(
             { id: user.id, email: user.email, role: user.role, },
-             process.env.JWT_SECRET,
+             process.env.JWT_SECRET!,
             { expiresIn: "1h" }
         );
         const refreshToken = jwt.sign(
@@ -106,7 +112,7 @@ app.post("/login", authLimiter, async (req, res, next) => {
         email: user.email,
         role: user.role,
         },
-        process.env.JWT_REFRESH_SECRET,
+        process.env.JWT_REFRESH_SECRET!,
         { expiresIn: "7d" }
     );
     await pool.query(
@@ -125,7 +131,7 @@ app.post("/login", authLimiter, async (req, res, next) => {
         next(err);
     }
 });
-app.post("/refresh", async (req, res) => {
+app.post("/refresh", async (req: Request, res: Response,next: NextFunction) => {
   const { refreshToken } = req.body;
 
   if (!refreshToken) {
@@ -134,9 +140,9 @@ app.post("/refresh", async (req, res) => {
 
   try {
     const user = jwt.verify(
-      refreshToken,
-      process.env.JWT_REFRESH_SECRET
-    );
+  refreshToken,
+  process.env.JWT_REFRESH_SECRET!
+) as any;
     const result = await pool.query(
   "SELECT refresh_token FROM users WHERE id = $1",
   [user.id]
@@ -154,7 +160,7 @@ if (result.rows[0].refresh_token !== refreshToken) {
     email: user.email,
     role: user.role,
   },
-  process.env.JWT_SECRET,
+  process.env.JWT_SECRET!,
   { expiresIn: "1h" }
 );
 
@@ -164,7 +170,7 @@ if (result.rows[0].refresh_token !== refreshToken) {
     email: user.email,
     role: user.role,
   },
-  process.env.JWT_REFRESH_SECRET,
+  process.env.JWT_REFRESH_SECRET!,
   { expiresIn: "7d" }
 );
 
@@ -183,7 +189,7 @@ res.json({
   }
 });
 
-function verifyToken(req, res, next) {
+function verifyToken(req: Request, res: Response, next: NextFunction) {
   const authHeader = req.headers.authorization;
 
   if (!authHeader) {
@@ -193,14 +199,14 @@ function verifyToken(req, res, next) {
   const token = authHeader.split(" ")[1];
 
   try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET);
-    req.user = verified;
+    const verified = jwt.verify(token, process.env.JWT_SECRET!)as any;
+    (req as any).user = verified;
     next();
   } catch (err) {
     return res.status(401).json("Invalid token");
   }
 }
-app.get("/users", async (req, res) => {
+app.get("/users", async (req: Request, res: Response,next: NextFunction) => {
     try {
         const result = await pool.query("SELECT * FROM users");
         res.json(result.rows);
@@ -210,20 +216,25 @@ app.get("/users", async (req, res) => {
     }
 });
 
-app.get("/dashboard", verifyToken, (req, res) => {
+app.get("/dashboard", verifyToken, (req: Request, res: Response) => {
     res.json({
         message: "Welcome to Dashboard",
-        user: req.user
+        user: (req as any).user
     });
 });
 
-app.get("/profile", verifyToken, (req, res) => {
+app.get("/profile", verifyToken, (req: Request, res: Response,next: NextFunction) => {
   res.json({
     message: "Protected Profile",
-    user: req.user
+    user: (req as any).user
   });
 });
-app.use((err, req, res, next) => {
+app.use((
+  err: any,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   console.error(err);
 
   res.status(err.status || 500).json({

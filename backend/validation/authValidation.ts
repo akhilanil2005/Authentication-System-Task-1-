@@ -1,5 +1,5 @@
 const Joi = require("joi");
-const registerSchema = Joi.object({
+export const registerSchema = Joi.object({
   name: Joi.string()
   .min(3)
   .required()
@@ -30,7 +30,7 @@ const registerSchema = Joi.object({
   })
 });
 
-const loginSchema = Joi.object({
+export const loginSchema = Joi.object({
   email: Joi.string().email().required(),
   password: Joi.string().required(),
 });
