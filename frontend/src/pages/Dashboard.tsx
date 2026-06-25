@@ -4,9 +4,14 @@ import {useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 
+type UserData = {
+  email: string;
+  password: string;
+  role: string;
+};
 
 function Dashboard() {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<UserData | null>(null);
   const navigate = useNavigate();
   
   useEffect(() => {

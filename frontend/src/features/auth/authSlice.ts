@@ -1,7 +1,12 @@
 import { createSlice, createAsyncThunk } from "@reduxjs/toolkit";
 import api from "../../api/axios";
 
-export const loginUser = createAsyncThunk(
+type LoginData = {
+  email: string;
+  password: string;
+};
+
+export const loginUser = createAsyncThunk<any, LoginData>(
   "auth/loginUser",
   async ({ email, password }, thunkAPI) => {
     try {
@@ -14,7 +19,7 @@ export const loginUser = createAsyncThunk(
       );
 
       return response.data;
-    } catch (error) {
+    } catch (error: any) {
       console.log(error.response?.data);
       if (error.response?.status === 429) {
   return thunkAPI.rejectWithValue(
@@ -38,7 +43,7 @@ const authSlice = createSlice({
     token: localStorage.getItem("token") || null,
     role: localStorage.getItem("role") || null,
     loading: false,
-    error: null,
+    error: null as string | null,
   },
 
   reducers: {
@@ -78,7 +83,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload;
+        state.error = action.payload as string;
       });
   },
 });

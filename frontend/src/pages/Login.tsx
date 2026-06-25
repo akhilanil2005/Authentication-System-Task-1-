@@ -2,12 +2,13 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
 import { loginUser } from "../features/auth/authSlice";
+import type { RootState, AppDispatch } from "../app/store";
 
 function Login() {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
     const { loading, error } = useSelector(
-    (state) => state.auth
-    );
+  (state: RootState) => state.auth
+);
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
      const [password, setPassword] = useState("");

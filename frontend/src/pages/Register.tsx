@@ -27,14 +27,16 @@ function Register() {
 setTimeout(() => {
               navigate("/login");
                   }, 1500);
-    } catch (err) {
-      console.log("FULL ERROR:", err);
-      if (err.response) {
-        setFormError(err.response.data?.message || err.message); // shows "Registration failed" or "Email already exists"
-      } else {
-        alert("Network error - backend not running?");
-      }
-    }
+    } 
+    catch (err) {
+  if (axios.isAxiosError(err)) {
+    setFormError(
+      err.response?.data?.message || err.message
+    );
+  } else {
+    setFormError("Registration failed");
+  }
+}
   };
   return (
     <div className="container">
