@@ -42,7 +42,9 @@ function Dashboard() {
 </div>
       <div className="card">
         <h1>Dashboard</h1>
-
+          <button onClick={() => navigate("/notifications")}>
+  Notifications
+</button>
         <div className="user-info">
           <h3>User Information</h3>
           <p><strong>Email:</strong> {user?.email}</p>

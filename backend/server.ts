@@ -4,20 +4,41 @@ import cors from "cors";
 import pool from "./config/db";
 import rateLimit from "express-rate-limit";
 import express, { Request, Response, NextFunction } from "express";
+import { registerSchema, loginSchema, } from "./validation/authValidation";
+import { logger } from "./middleware/logger";
+import { createServer } from "http";
+import { Server } from "socket.io";
+import { sendNotificationEmail } from "./services/emailService";
 import {
-  registerSchema,
-  loginSchema,
-} from "./validation/authValidation";
+  createActivity,
+  getActivitiesByUser
+} from "./repositories/activity.repository";
+import {
+  createNotification,
+  getNotificationsByUser,
+  getNotificationsByStatus,
+  markAsRead,
+  deleteNotification
+} from "./repositories/notificationRepository";
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 5,
+  max: 50,
   message: "Too many login attempts. Please try again later.",
 });
 
 const app = express();
+const httpServer = createServer(app);
+
+const io = new Server(httpServer, {
+  cors: {
+    origin: "http://localhost:5173",
+    methods: ["GET", "POST"],
+  },
+});
 app.use(cors());
 app.use(express.json());
+app.use(logger);
 
 app.get("/", async (req: Request, res: Response) => {
     try {
@@ -29,9 +50,7 @@ app.get("/", async (req: Request, res: Response) => {
     }
 });
 
-app.post(
-  "/register",
-  async (
+app.post( "/register", async (
     req: Request,
     res: Response,
     next: NextFunction
@@ -65,6 +84,11 @@ if (existingUser.rows.length > 0) {
             "INSERT INTO users(name,email,password) VALUES($1,$2,$3) RETURNING *",
             [name, email, hashedPassword]
         );
+        await createActivity(
+  result.rows[0].id,
+  "REGISTER",
+  req.ip || "unknown"
+);
 
         res.json(result.rows[0]);
 
@@ -80,13 +104,19 @@ app.post("/login", authLimiter, async (req: Request, res: Response, next: NextFu
         success: false,
         message: error.details[0].message,
   });
-}
+} 
+//console.log("BODY:", req.body);
         const { email, password } = req.body;
+        const dbName = await pool.query("SELECT current_database()");
+//console.log("Database:", dbName.rows[0]);
 
         const result = await pool.query(
             "SELECT * FROM users WHERE email = $1",
-            [email]
+            [email.trim()]
         );
+       
+//console.log("Rows count:", result.rows.length);
+//console.log("Rows:", result.rows);
 
         if (result.rows.length === 0) {
             return res.status(400).send("User not found");
@@ -119,18 +149,25 @@ app.post("/login", authLimiter, async (req: Request, res: Response, next: NextFu
   "UPDATE users SET refresh_token = $1 WHERE id = $2",
   [refreshToken, user.id]
 );
+  await createActivity(
+  user.id,
+  "LOGIN",
+  req.ip || "unknown"
+);
 
         res.json({
             message: "Login Successful",
             token,
             refreshToken,
             role: user.role,
+            userId: user.id,
         });
 
     } catch (err) {
         next(err);
     }
 });
+
 app.post("/refresh", async (req: Request, res: Response,next: NextFunction) => {
   const { refreshToken } = req.body;
 
@@ -229,6 +266,132 @@ app.get("/profile", verifyToken, (req: Request, res: Response,next: NextFunction
     user: (req as any).user
   });
 });
+
+app.post("/notifications", verifyToken, async (req, res) => {
+  try {
+    const { userId, title, message } = req.body;
+
+    const notification = await createNotification(
+      userId,
+      title,
+      message
+    );
+  //  await sendNotificationEmail(
+  //"test@example.com",
+  //"New Notification",
+  //`${title}\n\n${message}`
+//);
+    await createActivity(
+  userId,
+  "CREATE_NOTIFICATION",
+  `Created notification: ${title}`
+);
+    io.emit("newNotification", notification);
+
+    res.status(201).json(notification);
+  } catch (error) {
+  console.error(error);
+
+  res.status(500).json({
+    message: "Failed to create notification"
+  });
+}
+});
+
+app.get("/notifications/:userId", verifyToken, async (req, res) => {
+  try {
+    const userId = Number(req.params.userId);
+
+    const page = Number(req.query.page) || 1;
+const limit = Number(req.query.limit) || 5;
+const offset = (page -1) * limit;
+
+const { isRead } = req.query;
+
+let notifications;
+
+if (isRead !== undefined) {
+  notifications = await getNotificationsByStatus(
+    userId,
+    isRead === "true"
+  );
+} else {
+  notifications = await getNotificationsByUser(
+    userId,
+    page,
+    limit
+  );
+}
+
+res.json({
+  page,
+  limit,
+  notifications,
+});
+
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch notifications",
+    });
+  }
+});
+
+app.put("/notifications/:id/read", verifyToken, async (req, res) => {
+  try {
+    const notificationId = Number(req.params.id);
+
+    await markAsRead(notificationId);
+    await createActivity(
+  61,
+  "READ_NOTIFICATION",
+  `Notification ${notificationId} marked as read`
+);
+
+    res.json({
+      success: true,
+      message: "Notification marked as read",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to mark notification as read",
+    });
+  }
+});
+
+app.delete("/notifications/:id", verifyToken, async (req, res) => {
+  try {
+    const notificationId = Number(req.params.id);
+
+    await deleteNotification(notificationId);
+    await createActivity(
+  61,
+  "DELETE_NOTIFICATION",
+  `Notification ${notificationId} deleted`
+);
+
+    res.json({
+      success: true,
+      message: "Notification deleted",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete notification",
+    });
+  }
+});
+app.get("/activity-logs/:userId", async (req: Request, res: Response) => {
+  try {
+    const userId = Number(req.params.userId);
+
+    const activities = await getActivitiesByUser(userId);
+
+    res.json(activities);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch activity logs",
+    });
+  }
+});
 app.use((
   err: any,
   req: Request,
@@ -237,14 +400,25 @@ app.use((
 ) => {
   console.error(err);
 
+  if (res.headersSent) {
+    return next(err);
+  }
+
   res.status(err.status || 500).json({
     success: false,
     message: err.message || "Internal Server Error",
   });
 });
+io.on("connection", (socket) => {
+  console.log("User connected:", socket.id);
+
+  socket.on("disconnect", () => {
+    console.log("User disconnected:", socket.id);
+  });
+});
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
 });

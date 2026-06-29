@@ -42,6 +42,7 @@ const authSlice = createSlice({
   initialState: {
     token: localStorage.getItem("token") || null,
     role: localStorage.getItem("role") || null,
+    userId: Number(localStorage.getItem("userId")) || null,
     loading: false,
     error: null as string | null,
   },
@@ -74,12 +75,14 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
+        state.userId = action.payload.userId;
         state.token = action.payload.token;
         state.role = action.payload.role;
 
         localStorage.setItem("token", action.payload.token);
         localStorage.setItem("refreshToken", action.payload.refreshToken);
         localStorage.setItem("role", action.payload.role);
+        localStorage.setItem( "userId", action.payload.userId.toString());
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;

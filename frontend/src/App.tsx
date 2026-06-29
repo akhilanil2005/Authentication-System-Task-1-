@@ -7,6 +7,8 @@ import AdminRoute from "./components/AdminRoute";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { useEffect } from "react";
 import { isTokenExpired } from "./utils/tokenCheck";
+import Notifications from "./pages/Notifications";
+import ActivityHistory from "./pages/ActivityHistory";
 
 function App() {
   return (
@@ -24,6 +26,22 @@ function App() {
     <AdminRoute>
       <Admin />
     </AdminRoute>
+  }
+/>
+      <Route
+  path="/notifications"
+  element={
+    <ProtectedRoute>
+      <Notifications />
+    </ProtectedRoute>
+  }
+/>
+     <Route
+  path="/activity-history"
+  element={
+    <ProtectedRoute>
+      <ActivityHistory />
+    </ProtectedRoute>
   }
 />
       </Routes>
