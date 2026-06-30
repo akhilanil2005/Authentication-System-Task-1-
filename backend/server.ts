@@ -10,6 +10,7 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import { sendNotificationEmail } from "./services/emailService";
 import { getProfile } from "./services/user.service";
+import { getUserProfile, updateUserProfile, getUserById, updatePassword } from "./repositories/profile.repository";
 import {
   createActivity,
   getActivitiesByUser
@@ -279,6 +280,94 @@ app.get("/users", verifyToken, async (req, res) => {
     console.error(error);
     res.status(500).json({
       message: "Failed to fetch users",
+    });
+  }
+});
+app.get("/profile/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const user = await getUserProfile(id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    res.json(user);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+});
+app.put("/profile/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const { name, email } = req.body;
+
+    const updatedUser = await updateUserProfile(
+      id,
+      name,
+      email
+    );
+
+    res.json(updatedUser);
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error",
+    });
+  }
+});
+app.put("/change-password/:id", async (req, res) => {
+  try {
+    const id = Number(req.params.id);
+
+    const { currentPassword, newPassword } = req.body;
+
+    const user = await getUserById(id);
+
+    if (!user) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const isMatch = await bcrypt.compare(
+      currentPassword,
+      user.password
+    );
+
+    if (!isMatch) {
+      return res.status(400).json({
+        message: "Current password is incorrect",
+      });
+    }
+
+    const hashedPassword = await bcrypt.hash(
+      newPassword,
+      10
+    );
+
+    await updatePassword(
+      id,
+      hashedPassword
+    );
+
+    res.json({
+      message: "Password updated successfully",
+    });
+  } catch (error) {
+    console.error(error);
+
+    res.status(500).json({
+      message: "Server error",
     });
   }
 });
