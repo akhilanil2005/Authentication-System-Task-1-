@@ -23,17 +23,34 @@ const ActivityHistory = () => {
   if (error) return <h2>{error}</h2>;
 
   return (
-    <div>
-      <h1>Activity History</h1>
+  <div className="activity-container">
 
-      {activities.map((activity) => (
-        <div key={activity.id}>
-          <h3>{activity.action}</h3>
-          <small>{activity.created_at}</small>
-        </div>
-      ))}
-    </div>
-  );
+    <h1 className="activity-title">
+      Activity History
+    </h1>
+    <p className="activity-count">
+    {activities.length} Activities Found
+</p>
+
+    {activities.map((activity) => (
+      <div
+        key={activity.id}
+        className="activity-card"
+      >
+        <div className="activity-badge">
+  {activity.action === "LOGIN" ? "🔐 LOGIN" :
+   activity.action === "CREATE_NOTIFICATION" ? "🔔 CREATE NOTIFICATION" :
+   activity.action}
+</div>
+
+        <p className="activity-date">
+          {new Date(activity.created_at).toLocaleString()}
+        </p>
+      </div>
+    ))}
+
+  </div>
+);
 };
 
 export default ActivityHistory;

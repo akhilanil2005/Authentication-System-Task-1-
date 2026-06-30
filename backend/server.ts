@@ -9,6 +9,7 @@ import { logger } from "./middleware/logger";
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { sendNotificationEmail } from "./services/emailService";
+import { getProfile } from "./services/user.service";
 import {
   createActivity,
   getActivitiesByUser
@@ -243,6 +244,7 @@ function verifyToken(req: Request, res: Response, next: NextFunction) {
     return res.status(401).json("Invalid token");
   }
 }
+
 app.get("/users", async (req: Request, res: Response,next: NextFunction) => {
     try {
         const result = await pool.query("SELECT * FROM users");
@@ -266,21 +268,53 @@ app.get("/profile", verifyToken, (req: Request, res: Response,next: NextFunction
     user: (req as any).user
   });
 });
+app.get("/users", verifyToken, async (req, res) => {
+  try {
+    const result = await pool.query(
+  "SELECT id, name, email, role FROM users"
+);
+
+    res.json(result.rows);
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      message: "Failed to fetch users",
+    });
+  }
+});
 
 app.post("/notifications", verifyToken, async (req, res) => {
   try {
     const { userId, title, message } = req.body;
+if (userId === "all") {
+  const result = await pool.query(
+    "SELECT id FROM users WHERE role != 'admin'"
+  );
 
+  for (const user of result.rows) {
+    const notification = await createNotification(
+      user.id,
+      title,
+      message
+    );
+
+    io.emit("newNotification", notification);
+  }
+
+  return res.status(201).json({
+    message: "Notification sent to all users",
+  });
+}
     const notification = await createNotification(
       userId,
       title,
       message
     );
-  //  await sendNotificationEmail(
-  //"test@example.com",
-  //"New Notification",
-  //`${title}\n\n${message}`
-//);
+  await sendNotificationEmail(
+  process.env.EMAIL_USER!,
+  "New Notification Created",
+  `Notification: ${title}\n${message}`
+);
     await createActivity(
   userId,
   "CREATE_NOTIFICATION",

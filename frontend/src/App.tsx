@@ -9,6 +9,7 @@ import { useEffect } from "react";
 import { isTokenExpired } from "./utils/tokenCheck";
 import Notifications from "./pages/Notifications";
 import ActivityHistory from "./pages/ActivityHistory";
+import Profile from "./pages/Profile";
 
 function App() {
   return (
@@ -44,6 +45,7 @@ function App() {
     </ProtectedRoute>
   }
 />
+<Route path="/profile" element={<Profile />} />
       </Routes>
     </BrowserRouter>
   );

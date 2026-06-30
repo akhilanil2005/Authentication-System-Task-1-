@@ -1,14 +1,15 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import axios from "../api/axios";
 
 function Admin() {
   const [userId, setUserId] = useState("");
   const [title, setTitle] = useState("");
   const [message, setMessage] = useState("");
+  const [users, setUsers] = useState<any[]>([]);
 
   const handleCreateNotification = async () => {
     await axios.post("/notifications", {
-  userId: Number(userId),
+  userId,
   title,
   message,
 });
@@ -18,18 +19,37 @@ function Admin() {
     setTitle("");
     setMessage("");
   };
+    useEffect(() => {
+  const fetchUsers = async () => {
+    try {
+      const res = await axios.get("/users");
+      setUsers(res.data);
+    } catch (error) {
+      console.error(error);
+    }
+  };
+
+  fetchUsers();
+}, []);
 
   return (
     <div>
       <h1>Admin Page</h1>
 
       <h2>Create Notification</h2>
-      <input
-  type="number"
-  placeholder="User ID"
+     <select
   value={userId}
   onChange={(e) => setUserId(e.target.value)}
-/>
+>
+  <option value="all">All Users</option>
+  <option value="">Select User</option>
+
+  {users.map((user) => (
+    <option key={user.id} value={user.id}>
+      {user.name} ({user.email})
+    </option>
+  ))}
+</select>
       <input
         type="text"
         placeholder="Title"

@@ -39,7 +39,7 @@ const [search, setSearch] = useState("");
 
   if (loading)
   return (
-    <div>
+    <div className="notification-contain">
       <h2>Loading Notifications...</h2>
     </div>
   );
@@ -72,37 +72,40 @@ const handleDelete = async (id: number) => {
   return (
     <div>
         <div>
-            <input
+            <input className="search-input"
   type="text"
   placeholder="Search notifications..."
   value={search}
   onChange={(e) => setSearch(e.target.value)}
 />
-  <button onClick={() => setFilter("all")}>All</button>
-  <button onClick={() => setFilter("read")}>Read</button>
-  <button onClick={() => setFilter("unread")}>Unread</button>
+    <div className="filter-group">
+  <button  className="filter-btn" onClick={() => setFilter("all")}>All</button>
+  <button  className="filter-btn" onClick={() => setFilter("read")}>Read</button>
+  <button  className="filter-btn" onClick={() => setFilter("unread")}>Unread</button>
+  </div>
 </div>
-      <h2>Notifications ({filteredNotifications.length})</h2>
+      <h2 className="page-title">
+    Notifications ({filteredNotifications.length})
+</h2>
         {filteredNotifications.length === 0 ? (
   <p>No notifications found.</p>
 ) : (
       filteredNotifications.map((notification) => (
-        <div
-          key={notification.id}
-          style={{
-            border: "1px solid gray",
-            padding: "10px",
-            margin: "10px",
-          }}
-        >
+        <div key={notification.id} className="notification-card">
           <h3>{notification.title}</h3>
           <p>{notification.message}</p>
-          <small>
-            {notification.is_read ? "Read" : "Unread"}
-          </small>
+          <span
+  className={
+    notification.is_read
+      ? "status-read"
+      : "status-unread"
+  }
+>
+  {notification.is_read ? "Read" : "Unread"}
+</span>
           <>
   {!notification.is_read && (
-    <button
+    <button className="read-btn"
       onClick={() =>
         dispatch(markNotificationRead(notification.id))
       }
@@ -111,7 +114,7 @@ const handleDelete = async (id: number) => {
     </button>
   )}
 
-  <button
+  <button className="delete-btn"
     onClick={() => {
   if (window.confirm("Delete notification?")) {
     handleDelete(notification.id);
@@ -125,19 +128,19 @@ const handleDelete = async (id: number) => {
         </div>
         ))
       )}
-      <div style={{ marginTop: "20px" }}>
-  <button
+      <div className="pagination">
+  <button className="page-btn"
     onClick={() => setPage(page - 1)}
     disabled={page === 1}
   >
     Previous
   </button>
 
-  <span style={{ margin: "0 10px" }}>
-    Page {page}
-  </span>
+  <span className="page-number">
+  Page {page}
+</span>
 
-  <button
+  <button className="page-btn"
   onClick={() => setPage(page + 1)}
   disabled={notifications.length < 5}
 >

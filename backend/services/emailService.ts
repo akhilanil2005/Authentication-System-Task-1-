@@ -1,10 +1,24 @@
+import nodemailer from "nodemailer";
+
+const transporter = nodemailer.createTransport({
+  service: "gmail",
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
 export const sendNotificationEmail = async (
   to: string,
   subject: string,
   message: string
 ) => {
-  console.log("Email sent:");
-  console.log("To:", to);
-  console.log("Subject:", subject);
-  console.log("Message:", message);
+  await transporter.sendMail({
+    from: process.env.EMAIL_USER,
+    to,
+    subject,
+    text: message,
+  });
+
+  console.log("Email sent successfully");
 };
