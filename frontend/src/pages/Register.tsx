@@ -39,8 +39,8 @@ setTimeout(() => {
 }
   };
   return (
-    <div className="container">
-        <div className="card">
+  <div className="auth-container">
+    <div className="auth-card">
       <h1>Register</h1>
 
       <input
@@ -48,37 +48,39 @@ setTimeout(() => {
         placeholder="Name"
         onChange={(e) => setName(e.target.value)}
       />
-      <br /><br />
 
       <input
         type="email"
         placeholder="Email"
         onChange={(e) => setEmail(e.target.value)}
       />
-      <br /><br />
 
       <input
         type="password"
         placeholder="Password"
         onChange={(e) => setPassword(e.target.value)}
       />
-      <br /><br />
-      {formError && (
-  <div className="error-message">
-     {formError}
-  </div>
-)}
-      <button onClick={handleRegister}>
-        Register
-      </button>
 
-<p style={{ marginTop: "15px" }}>
-  Already have an account?{" "}
-  <Link to="/login">Login</Link>
-</p>
-      </div>
+      {formError && (
+        <div className="error-message">
+          {formError}
+        </div>
+      )}
+
+      <button
+  className="auth-btn"
+  onClick={handleRegister}
+>
+  Register
+</button>
+
+      <p className="auth-link">
+        Already have an account?{" "}
+        <Link to="/login">Login</Link>
+      </p>
     </div>
-  );
+  </div>
+);
 }
 
 export default Register;

@@ -4,6 +4,7 @@ import { fetchNotifications, markNotificationRead} from "../features/notificatio
 import type{ RootState, AppDispatch } from "../app/store";
 import {socket} from "../socket";
 import axios from "../api/axios";
+import Navbar from "../components/Navbar";
 
 const Notifications = () => {
 const [filter, setFilter] = useState("all");
@@ -39,7 +40,7 @@ const [search, setSearch] = useState("");
 
   if (loading)
   return (
-    <div className="notification-contain">
+    <div className="notifications-container">
       <h2>Loading Notifications...</h2>
     </div>
   );
@@ -70,7 +71,11 @@ const handleDelete = async (id: number) => {
   dispatch(fetchNotifications({ userId: userId || 61, page }));
 };
   return (
-    <div>
+    <div className="notification-container">
+        <Navbar
+        email={localStorage.getItem("email") || ""}
+        role={localStorage.getItem("role") || ""}
+/>
         <div>
             <input className="search-input"
   type="text"
@@ -88,12 +93,14 @@ const handleDelete = async (id: number) => {
     Notifications ({filteredNotifications.length})
 </h2>
         {filteredNotifications.length === 0 ? (
-  <p>No notifications found.</p>
+  <p className="no-notifications">
+    No notifications found.
+  </p>
 ) : (
       filteredNotifications.map((notification) => (
         <div key={notification.id} className="notification-card">
-          <h3>{notification.title}</h3>
-          <p>{notification.message}</p>
+          <h3 className="notification-title">{notification.title}</h3>
+          <p className="notification-message">{notification.message}</p>
           <span
   className={
     notification.is_read
@@ -103,7 +110,7 @@ const handleDelete = async (id: number) => {
 >
   {notification.is_read ? "Read" : "Unread"}
 </span>
-          <>
+  <div className="notification-actions">
   {!notification.is_read && (
     <button className="read-btn"
       onClick={() =>
@@ -123,7 +130,7 @@ const handleDelete = async (id: number) => {
   >
     Delete
   </button>
-</>
+</div>
 
         </div>
         ))

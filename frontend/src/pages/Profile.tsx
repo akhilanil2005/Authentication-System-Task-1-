@@ -2,6 +2,7 @@ import { useSelector } from "react-redux";
 import type { RootState } from "../app/store";
 import { useEffect, useState } from "react";
 import axios from "axios";
+import Navbar from "../components/Navbar";
 
 const Profile = () => {
     const [profile, setProfile] = useState<any>(null);
@@ -23,6 +24,15 @@ useEffect(() => {
     .catch((err) => console.error(err));
 }, [auth.userId]);
 const handleUpdate = async () => {
+    if (!name.trim()) {
+  alert("Name is required");
+  return;
+}
+
+if (!email.includes("@")) {
+  alert("Enter a valid email");
+  return;
+}
   try {
     const res = await axios.put(
   `http://localhost:5000/profile/${auth.userId}`,
@@ -41,6 +51,15 @@ const handleUpdate = async () => {
 };
 const handleChangePassword = async () => {
   try {
+    if (!currentPassword) {
+  alert("Current password is required");
+  return;
+}
+
+if (newPassword.length < 6) {
+  alert("Password must be at least 6 characters");
+  return;
+}
     await axios.put(
       `http://localhost:5000/change-password/${auth.userId}`,
       {
@@ -62,75 +81,111 @@ if (!profile) {
   return <h2>Loading...</h2>;
 }
   return (
+    <>
+    <Navbar
+        email={localStorage.getItem("email") || ""}
+        role={localStorage.getItem("role") || ""}
+/>
     <div className="profile-container">
-      <div className="profile-card">
-        <h1>Profile</h1>
+  <div className="profile-card">
 
-        <div className="profile-item">
-  <span>User ID</span>
-    <p>{profile.id}</p>
-</div>
+    <h1>My Profile</h1>
+    <div className="profile-header">
+  <div className="avatar">
+    {profile.name?.charAt(0).toUpperCase()}
+  </div>
 
-<div className="profile-item">
-  <span>Role</span>
-  <p>{profile.role}</p>
-</div>
+  <h1>{profile.name}</h1>
 
-<div className="profile-item">
-  <span>Token Status</span>
-  <p>{auth.token ? "Logged In" : "Logged Out"}</p>
-</div>
-<div className="profile-item">
-  <span>Name</span>
-  <p>{profile.name}</p>
-</div>
-
-<div className="profile-item">
-  <span>Email</span>
   <p>{profile.email}</p>
 </div>
-<div className="profile-item">
-  <span>Edit Name</span>
-  <input
-    value={name}
-    onChange={(e) => setName(e.target.value)}
-  />
-</div>
+    <div className="profile-section">
+      <h2>Account Information</h2>
 
-<div className="profile-item">
-  <span>Edit Email</span>
-  <input
-    value={email}
-    onChange={(e) => setEmail(e.target.value)}
-  />
-</div>
+      <div className="profile-grid">
+        <div>
+          <label>User ID</label>
+          <p>{profile.id}</p>
+        </div>
 
-<button onClick={handleUpdate}>
-  Update Profile
-</button>
-<div className="profile-item">
-  <span>Current Password</span>
-  <input
-    type="password"
-    value={currentPassword}
-    onChange={(e) => setCurrentPassword(e.target.value)}
-  />
-</div>
+        <div>
+          <label>Role</label>
+          <span className="role-badge">
+  {profile.role}
+</span>
+        </div>
 
-<div className="profile-item">
-  <span>New Password</span>
-  <input
-    type="password"
-    value={newPassword}
-    onChange={(e) => setNewPassword(e.target.value)}
-  />
-</div>
+        <div>
+          <label>Name</label>
+          <p>{profile.name}</p>
+        </div>
 
-<button onClick={handleChangePassword}>
-  Change Password
-</button>
+        <div>
+          <label>Email</label>
+          <p>{profile.email}</p>
+        </div>
       </div>
     </div>
+
+    <div className="profile-section">
+      <h2>Edit Profile</h2>
+      <div className="profile-grid">
+      <input
+        type="text"
+        placeholder="Enter Name"
+        value={name}
+        onChange={(e) => setName(e.target.value)}
+      />
+    <br></br>
+      <input
+        type="email"
+        placeholder="Enter Email"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+      />
+      </div>
+
+      <button
+        className="primary-btn"
+        onClick={handleUpdate}
+      >
+        Update Profile
+      </button>
+    </div>
+
+    <div className="profile-section">
+      <h2>Update Password</h2>
+    <div className="profile-grid">
+      <input
+        type="password"
+        placeholder="Current Password"
+        value={currentPassword}
+        onChange={(e) =>
+          setCurrentPassword(e.target.value)
+        }
+      />
+        <br></br>
+      <input
+        type="password"
+        placeholder="New Password"
+        value={newPassword}
+        onChange={(e) =>
+          setNewPassword(e.target.value)
+        }
+      />
+      </div>
+
+      <button
+        className="danger-btn"
+        onClick={handleChangePassword}
+      >
+        Change Password
+      </button>
+    </div>
+
+  </div>
+</div>
+</>
   );
 };
 

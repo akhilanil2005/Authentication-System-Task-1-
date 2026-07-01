@@ -3,6 +3,7 @@ import api from "../api/axios";
 import {useState} from "react";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
+import Navbar from "../components/Navbar";
 
 type UserData = {
   id: number;
@@ -39,59 +40,30 @@ setUser(res.data.user);
 }, []);
 
   return (
-    <div className="container">
-      <div className="navbar">
-  <div className="logo">
-    Authentication System
-  </div>
+    <div className="dashboard-container">
+      <Navbar
+  email={user?.email || ""}
+  role={user?.role || ""}
+/>
+      <div className="dashboard-content">
+  <div>
+  <div className="dashboard-card">
 
-  <div className="nav-links">
-    <button className="active" onClick={() => navigate("/dashboard")}>
-      Dashboard
-    </button>
-
-    <button onClick={() => navigate("/notifications")}>
-      Notifications
-    </button>
-
-    <button onClick={() => navigate("/activity-history")}>
-      Activity
-    </button>
-
-    <button onClick={() => navigate("/profile")}>
-      Profile
-    </button>
-    {user?.role === "admin" && (
-  <button onClick={() => navigate("/admin")}>
-    Admin
-  </button>
-)}
-  </div>
-
-  <div className="user-email">
-    {user?.email}
-  </div>
-</div>
-      <div className="card">
-  <h1>Welcome Back</h1>
-
-  <div className="profile-box">
+  <h2 className="welcome-title">
+    Welcome Back
+  </h2>
+    
     <h3>{user?.name || "User"}</h3>
-
-    <p>
-      <strong>Email:</strong> {user?.email}
-    </p>
-
-    <p>
+<p>User ID: {user?.id}</p>
+<p>Email: {user?.email}</p>
+<p>
   <strong>Role:</strong>
   <span className="role-badge">
-    {user?.role}
+    {user?.role?.toUpperCase()}
   </span>
 </p>
-  </div>
-
-  <button
-    className="logout-btn"
+<button
+    className="danger-btn"
     onClick={() => {
       localStorage.removeItem("token");
       window.location.href = "/login";
@@ -99,6 +71,8 @@ setUser(res.data.user);
   >
     Logout
   </button>
+  </div>
+  </div>
 </div>
     </div>
   );

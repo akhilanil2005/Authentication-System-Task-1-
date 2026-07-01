@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchActivities } from "../features/activity/activitySlice";
 import type { RootState, AppDispatch } from "../app/store";
+import Navbar from "../components/Navbar";
 
 const ActivityHistory = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -12,6 +13,11 @@ const ActivityHistory = () => {
   const { activities, loading, error } = useSelector(
     (state: RootState) => state.activity
   );
+  const sortedActivities = [...activities].sort(
+  (a, b) =>
+    new Date(b.created_at).getTime() -
+    new Date(a.created_at).getTime()
+);
 
   useEffect(() => {
    if (userId) {
@@ -23,16 +29,21 @@ const ActivityHistory = () => {
   if (error) return <h2>{error}</h2>;
 
   return (
+    <>
+     <Navbar
+  email={localStorage.getItem("email") || ""}
+  role={localStorage.getItem("role") || ""}
+/>
   <div className="activity-container">
-
+   
     <h1 className="activity-title">
       Activity History
     </h1>
     <p className="activity-count">
     {activities.length} Activities Found
 </p>
-
-    {activities.map((activity) => (
+    <div className="activity-list">
+    {sortedActivities.map((activity) => (
       <div
         key={activity.id}
         className="activity-card"
@@ -48,8 +59,10 @@ const ActivityHistory = () => {
         </p>
       </div>
     ))}
+    </div>
 
   </div>
+  </>
 );
 };
 

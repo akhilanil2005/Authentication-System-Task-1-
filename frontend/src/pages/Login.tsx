@@ -25,8 +25,8 @@ const [formError, setFormError] = useState("");
   } 
 };
   return (
-    <div className="container">
-        <div className="card">
+    <div className="auth-container">
+        <div className="auth-card">
       <h1>Login</h1>
 
       <input
@@ -34,19 +34,17 @@ const [formError, setFormError] = useState("");
         placeholder="Email"
         onChange={(e) => setEmail(e.target.value)}
       />
-      <br /><br />
 
       <input
         type="password"
         placeholder="Password"
         onChange={(e) => setPassword(e.target.value)}
       />
-      <br /><br />
-      <button onClick={handleLogin} disabled={loading}>
+      <button className="auth-btn" onClick={handleLogin} disabled={loading}>
   {loading ? "Logging in..." : "Login"}
 </button>
-{error && <p>{error}</p>}
-      <p style={{ marginTop: "15px" }}>
+{error && <p className="error">{error}</p>}
+      <p className="auth-link">
   Don't have an account?{" "}
   <Link to="/">Register</Link>
 </p>

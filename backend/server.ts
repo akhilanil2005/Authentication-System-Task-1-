@@ -11,6 +11,7 @@ import { Server } from "socket.io";
 import { sendNotificationEmail } from "./services/emailService";
 import { getProfile } from "./services/user.service";
 import { getUserProfile, updateUserProfile, getUserById, updatePassword } from "./repositories/profile.repository";
+import { updateProfileSchema, changePasswordSchema,} from "./validation/profileValidation";
 import {
   createActivity,
   getActivitiesByUser
@@ -304,9 +305,18 @@ app.get("/profile/:id", async (req, res) => {
     });
   }
 });
+
 app.put("/profile/:id", async (req, res) => {
-  try {
-    const id = Number(req.params.id);
+    try {
+  const { error } = updateProfileSchema.validate(req.body);
+
+  if (error) {
+    return res.status(400).json({
+      message: error.details[0].message,
+    });
+  }
+
+  const id = Number(req.params.id);
 
     const { name, email } = req.body;
 
@@ -327,8 +337,14 @@ app.put("/profile/:id", async (req, res) => {
 });
 app.put("/change-password/:id", async (req, res) => {
   try {
-    const id = Number(req.params.id);
+    const { error } = changePasswordSchema.validate(req.body);
 
+if (error) {
+  return res.status(400).json({
+    message: error.details[0].message,
+  });
+}
+    const id = Number(req.params.id);
     const { currentPassword, newPassword } = req.body;
 
     const user = await getUserById(id);

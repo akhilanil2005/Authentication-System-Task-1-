@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import axios from "../api/axios";
+import Navbar from "../components/Navbar";
 
 function Admin() {
   const [userId, setUserId] = useState("");
@@ -33,10 +34,17 @@ function Admin() {
 }, []);
 
   return (
-    <div>
-      <h1>Admin Page</h1>
+    <>
+    <Navbar
+        email={localStorage.getItem("email") || ""}
+        role={localStorage.getItem("role") || ""}
+/>
+    <div className="admin-container">
+      <div className="admin-card">
+      <h1 className="admin-title">Admin Page</h1>
 
-      <h2>Create Notification</h2>
+      <h2 className="admin-subtitle">Create Notification</h2>
+      <div className="admin-form">
      <select
   value={userId}
   onChange={(e) => setUserId(e.target.value)}
@@ -56,24 +64,18 @@ function Admin() {
         value={title}
         onChange={(e) => setTitle(e.target.value)}
       />
-
-      <br />
-      <br />
-
-      <input
-        type="text"
-        placeholder="Message"
-        value={message}
-        onChange={(e) => setMessage(e.target.value)}
-      />
-
-      <br />
-      <br />
-
-      <button onClick={handleCreateNotification}>
+      <textarea
+  placeholder="Message"
+  value={message}
+  onChange={(e) => setMessage(e.target.value)}
+/>
+      <button className="create-btn"onClick={handleCreateNotification}>
         Create Notification
       </button>
+      </div>
+      </div>
     </div>
+    </>
   );
 }
 
