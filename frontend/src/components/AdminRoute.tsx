@@ -1,6 +1,12 @@
 import { Navigate } from "react-router-dom";
+import type { ReactNode } from "react";
 
-function AdminRoute({ children }) {
+type Props = {
+  children: ReactNode;
+};
+
+function AdminRoute({ children }: Props) {
+
   const role = localStorage.getItem("role");
 
   if (role !== "admin") {

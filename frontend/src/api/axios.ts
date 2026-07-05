@@ -6,23 +6,25 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-
+  config.headers["Cache-Control"] = "no-cache";
   return config;
 });
-
 api.interceptors.response.use(
   (response) => response,
 
   async (error) => {
     const originalRequest = error.config;
+      const isAuthEndpoint =
+      originalRequest.url?.includes("/login") ||
+      originalRequest.url?.includes("/refresh");
 
     if (
       error.response?.status === 401 &&
-      !originalRequest._retry
+      !originalRequest._retry &&
+      !isAuthEndpoint
     ) {
       originalRequest._retry = true;
 

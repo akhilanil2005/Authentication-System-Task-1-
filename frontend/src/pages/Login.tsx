@@ -1,51 +1,51 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser } from "../features/auth/authSlice";
+import { loginUser, clearError } from "../features/auth/authSlice";
+import type { RootState, AppDispatch } from "../app/store";
 
 function Login() {
-    const dispatch = useDispatch();
+    const dispatch = useDispatch<AppDispatch>();
     const { loading, error } = useSelector(
-    (state) => state.auth
-    );
+  (state: RootState) => state.auth
+);
     const navigate = useNavigate();
     const [email, setEmail] = useState("");
      const [password, setPassword] = useState("");
 const [formError, setFormError] = useState("");
 
   const handleLogin = async () => {
-    setFormError("");
   const result = await dispatch(
     loginUser({ email, password })
   );
 
   if (loginUser.fulfilled.match(result)) {
-    navigate("/dashboard");
-  } 
+  navigate("/dashboard");
+} else {
+  console.log("Login Failed:", result.payload);
+}
 };
   return (
-    <div className="container">
-        <div className="card">
+    <div className="auth-container">
+        <div className="auth-card">
       <h1>Login</h1>
 
       <input
         type="email"
         placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e) => { setEmail(e.target.value); if (error) dispatch(clearError()); }}
       />
-      <br /><br />
 
       <input
         type="password"
         placeholder="Password"
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => { setPassword(e.target.value); if (error) dispatch(clearError()); }}
       />
-      <br /><br />
-      <button onClick={handleLogin} disabled={loading}>
+      <button type="button" className="auth-btn" onClick={handleLogin} disabled={loading}>
   {loading ? "Logging in..." : "Login"}
 </button>
-{error && <p>{error}</p>}
-      <p style={{ marginTop: "15px" }}>
+{error && <p className="error">{error}</p>}
+      <p className="auth-link">
   Don't have an account?{" "}
   <Link to="/">Register</Link>
 </p>
