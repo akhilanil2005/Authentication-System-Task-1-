@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
-import { loginUser } from "../features/auth/authSlice";
+import { loginUser, clearError } from "../features/auth/authSlice";
 import type { RootState, AppDispatch } from "../app/store";
 
 function Login() {
@@ -15,14 +15,15 @@ function Login() {
 const [formError, setFormError] = useState("");
 
   const handleLogin = async () => {
-    setFormError("");
   const result = await dispatch(
     loginUser({ email, password })
   );
 
   if (loginUser.fulfilled.match(result)) {
-    navigate("/dashboard");
-  } 
+  navigate("/dashboard");
+} else {
+  console.log("Login Failed:", result.payload);
+}
 };
   return (
     <div className="auth-container">
@@ -32,15 +33,15 @@ const [formError, setFormError] = useState("");
       <input
         type="email"
         placeholder="Email"
-        onChange={(e) => setEmail(e.target.value)}
+        onChange={(e) => { setEmail(e.target.value); if (error) dispatch(clearError()); }}
       />
 
       <input
         type="password"
         placeholder="Password"
-        onChange={(e) => setPassword(e.target.value)}
+        onChange={(e) => { setPassword(e.target.value); if (error) dispatch(clearError()); }}
       />
-      <button className="auth-btn" onClick={handleLogin} disabled={loading}>
+      <button type="button" className="auth-btn" onClick={handleLogin} disabled={loading}>
   {loading ? "Logging in..." : "Login"}
 </button>
 {error && <p className="error">{error}</p>}

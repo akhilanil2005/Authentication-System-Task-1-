@@ -1,9 +1,10 @@
 import { useEffect } from "react";
-import api from "../api/axios";
-import {useState} from "react";
 import { useNavigate } from "react-router-dom";
-import { useSelector } from "react-redux";
+import { useSelector, useDispatch } from "react-redux";
 import Navbar from "../components/Navbar";
+import { fetchProfile } from "../features/auth/authSlice";
+import type { RootState, AppDispatch } from "../app/store";
+import axios from "../api/axios";
 
 type UserData = {
   id: number;
@@ -13,38 +14,26 @@ type UserData = {
 };
 
 function Dashboard() {
-  const [user, setUser] = useState<UserData | null>(null);
   const navigate = useNavigate();
   const role = localStorage.getItem("role");
 console.log("Role:", role);
+// Dashboard.tsx
+const dispatch = useDispatch<AppDispatch>();
+const { user, token, profileLoading } = useSelector((s: RootState) => s.auth);
+
+useEffect(() => {
+  if (!token) {
+    navigate("/login");
+    return;
+  }
+}, [token]);
+if (profileLoading) return <div className="loading-screen">Loading...</div>;
+  if (!user) return null;
   
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-
-    if (!token) {
-      navigate("/login");
-    }
-  }, []);
-  useEffect(() => {
-  const getProfile = async () => {
-    try {
-      const res = await api.get("/profile");
-console.log(res.data);
-setUser(res.data.user);
-    } catch (err) {
-      console.error("Profile fetch failed");
-    }
-  };
-
-  getProfile();
-}, []);
 
   return (
     <div className="dashboard-container">
-      <Navbar
-  email={user?.email || ""}
-  role={user?.role || ""}
-/>
+      <Navbar/>
       <div className="dashboard-content">
   <div>
   <div className="dashboard-card">
@@ -64,10 +53,18 @@ setUser(res.data.user);
 </p>
 <button
     className="danger-btn"
-    onClick={() => {
-      localStorage.removeItem("token");
-      window.location.href = "/login";
-    }}
+    onClick={async () => {
+  try {
+    await axios.post("/logout");
+
+    localStorage.removeItem("token");
+    localStorage.removeItem("refreshToken");
+
+    window.location.href = "/login";
+  } catch (error) {
+    console.error(error);
+  }
+}}
   >
     Logout
   </button>

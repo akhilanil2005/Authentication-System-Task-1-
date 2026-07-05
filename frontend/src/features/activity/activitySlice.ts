@@ -12,7 +12,6 @@ export interface ActivityState {
   loading: boolean;
   error: string | null;
 }
-
 const initialState: ActivityState = {
   activities: [],
   loading: false,

@@ -3,6 +3,9 @@ import type { RootState } from "../app/store";
 import { useEffect, useState } from "react";
 import axios from "axios";
 import Navbar from "../components/Navbar";
+import { useDispatch } from "react-redux";
+import { logout } from "../features/auth/authSlice";
+import { useNavigate } from "react-router-dom";
 
 const Profile = () => {
     const [profile, setProfile] = useState<any>(null);
@@ -10,9 +13,20 @@ const Profile = () => {
 const [email, setEmail] = useState("");
 const [currentPassword, setCurrentPassword] = useState("");
 const [newPassword, setNewPassword] = useState("");
+const [confirmPassword, setConfirmPassword] = useState("");
   const auth = useSelector(
   (state: RootState) => state.auth
 );
+const dispatch = useDispatch();
+const navigate = useNavigate();
+
+const handleLogout = () => {
+  dispatch(logout());
+
+  localStorage.clear();
+
+  navigate("/login");
+};
 useEffect(() => {
   axios
     .get(`http://localhost:5000/profile/${auth.userId}`)
@@ -42,6 +56,39 @@ if (!email.includes("@")) {
   }
 );
     setProfile(res.data);
+    if (
+  (currentPassword && !newPassword) ||
+  (!currentPassword && newPassword)
+) {
+  alert(
+    "Enter both Current Password and New Password"
+  );
+  return;
+}
+   if (currentPassword && newPassword) {
+
+  if (newPassword !== confirmPassword) {
+    alert("Passwords do not match");
+    return;
+  }
+
+  if (newPassword.length < 6) {
+    alert("Password must be at least 6 characters");
+    return;
+  }
+
+  await axios.put(
+    `http://localhost:5000/change-password/${auth.userId}`,
+    {
+      currentPassword,
+      newPassword,
+    }
+  );
+
+  setCurrentPassword("");
+  setNewPassword("");
+  setConfirmPassword("");
+}
 
     alert("Profile updated successfully");
   } catch (error) {
@@ -49,43 +96,12 @@ if (!email.includes("@")) {
     alert("Update failed");
   }
 };
-const handleChangePassword = async () => {
-  try {
-    if (!currentPassword) {
-  alert("Current password is required");
-  return;
-}
-
-if (newPassword.length < 6) {
-  alert("Password must be at least 6 characters");
-  return;
-}
-    await axios.put(
-      `http://localhost:5000/change-password/${auth.userId}`,
-      {
-        currentPassword,
-        newPassword,
-      }
-    );
-
-    alert("Password changed successfully");
-
-    setCurrentPassword("");
-    setNewPassword("");
-  } catch (error) {
-    console.error(error);
-    alert("Password change failed");
-  }
-};
 if (!profile) {
   return <h2>Loading...</h2>;
 }
   return (
     <>
-    <Navbar
-        email={localStorage.getItem("email") || ""}
-        role={localStorage.getItem("role") || ""}
-/>
+    <Navbar/>
     <div className="profile-container">
   <div className="profile-card">
 
@@ -128,60 +144,83 @@ if (!profile) {
     </div>
 
     <div className="profile-section">
-      <h2>Edit Profile</h2>
+      <h2>Edit Profile & Password</h2>
       <div className="profile-grid">
-      <input
-        type="text"
-        placeholder="Enter Name"
-        value={name}
-        onChange={(e) => setName(e.target.value)}
-      />
-    <br></br>
-      <input
-        type="email"
-        placeholder="Enter Email"
-        value={email}
-        onChange={(e) => setEmail(e.target.value)}
-      />
-      </div>
+
+  <div>
+    <label>Current Name</label>
+    <p>{profile.name}</p>
+  </div>
+
+  <div>
+    <label>Update Name</label>
+    <input
+      type="text"
+      value={name}
+      onChange={(e) => setName(e.target.value)}
+      autoComplete="off"
+    />
+  </div>
+
+  <div>
+    <label>Current Email</label>
+    <p>{profile.email}</p>
+  </div>
+
+  <div>
+    <label>Update Email</label>
+    <input
+      type="email"
+      value={email}
+      onChange={(e) => setEmail(e.target.value)}
+      autoComplete="off"
+    />
+  </div>
+
+</div>
+      <h3>Change Password</h3>
+
+<div className="password-section">
+
+  <input
+    type="password"
+    placeholder="Current Password"
+    value={currentPassword}
+    onChange={(e) => setCurrentPassword(e.target.value)}
+    autoComplete="off"
+  />
+
+  <input
+    type="password"
+    placeholder="New Password"
+    value={newPassword}
+    onChange={(e) => setNewPassword(e.target.value)}
+  />
+
+  <input
+    type="password"
+    placeholder="Confirm Password"
+    value={confirmPassword}
+    onChange={(e) => setConfirmPassword(e.target.value)}
+  />
+
+</div>
 
       <button
         className="primary-btn"
         onClick={handleUpdate}
       >
-        Update Profile
+        Save Changes
       </button>
-    </div>
-
-    <div className="profile-section">
-      <h2>Update Password</h2>
-    <div className="profile-grid">
-      <input
-        type="password"
-        placeholder="Current Password"
-        value={currentPassword}
-        onChange={(e) =>
-          setCurrentPassword(e.target.value)
-        }
-      />
-        <br></br>
-      <input
-        type="password"
-        placeholder="New Password"
-        value={newPassword}
-        onChange={(e) =>
-          setNewPassword(e.target.value)
-        }
-      />
-      </div>
-
       <button
-        className="danger-btn"
-        onClick={handleChangePassword}
-      >
-        Change Password
-      </button>
+  className="logout-btn"
+  onClick={handleLogout}
+>
+  Logout
+</button>
     </div>
+
+    
 
   </div>
 </div>

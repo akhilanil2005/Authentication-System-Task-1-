@@ -35,10 +35,7 @@ function Admin() {
 
   return (
     <>
-    <Navbar
-        email={localStorage.getItem("email") || ""}
-        role={localStorage.getItem("role") || ""}
-/>
+    <Navbar/>
     <div className="admin-container">
       <div className="admin-card">
       <h1 className="admin-title">Admin Page</h1>
