@@ -94,6 +94,14 @@ function Navbar() {
             Permissions
           </button>
         )}
+        {permissions.includes("files:view") && (
+  <button
+    className={location.pathname === "/files" ? "active" : ""}
+    onClick={() => go("/files")}
+  >
+    Files
+  </button>
+)}
 
         <div className="user-email mobile-only">{email || ""}</div>
       </div>

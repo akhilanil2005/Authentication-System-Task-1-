@@ -865,7 +865,7 @@ input:focus{
   color:white;
   font-size:56px;
   font-weight:700;
-  margin-bottom:10px;
+  margin-bottom: 35px;
 }
 .admin-subtitle{
   text-align:center;
@@ -1509,4 +1509,64 @@ input:focus{
     width: 100%;
     max-width: 100%;
   }
+}
+.file-list-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.file-thumbnail {
+  width: 60px;
+  height: 60px;
+  object-fit: cover;
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+
+.file-icon {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+.file-info {
+  display: flex;
+  flex-direction: column;
+  flex-grow: 1;
+  min-width: 0;
+}
+
+.file-info strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-meta {
+  font-size: 0.8rem;
+  opacity: 0.7;
+}
+
+.file-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.file-actions button.danger {
+  background: #d9534f;
+  color: white;
+}
+.file-drop-zone {
+  text-align: center;
 }

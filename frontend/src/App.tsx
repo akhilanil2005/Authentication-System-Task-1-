@@ -16,6 +16,7 @@ import Unauthorized from "./pages/Unauthorized";
 import RoleManagement from "./pages/RoleManagement";
 import PermissionManagement from "./pages/PermissionManagement";
 import UserManagement from "./pages/UserManagement";
+import Files from "./pages/Files";
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -98,6 +99,11 @@ function App() {
     </ProtectedRoute>
   }
 />
+        <Route path="/files" element={
+  <ProtectedRoute requiredPermission="files:view">
+    <Files />
+  </ProtectedRoute>
+} />
       </Routes>
     </BrowserRouter>
   );
