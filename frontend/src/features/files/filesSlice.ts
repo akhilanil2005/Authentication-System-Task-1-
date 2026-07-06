@@ -6,6 +6,7 @@ export type FileCategory = "image" | "document" | "attachment";
 export interface FileRecord {
   id: number;
   owner_id: number;
+  owner_name: string;
   original_name: string;
   mime_type: string;
   size_bytes: number;
@@ -13,7 +14,6 @@ export interface FileRecord {
   download_token: string;
   created_at: string;
 }
-
 export const uploadFile = createAsyncThunk<
   FileRecord,
   { file: File; onProgress?: (percent: number) => void },

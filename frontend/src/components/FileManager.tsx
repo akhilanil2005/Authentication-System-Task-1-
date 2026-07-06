@@ -111,10 +111,11 @@ function FileManager() {
 
                 <div className="file-info">
                   <strong>{file.original_name}</strong>
-                  <span className="file-meta">
-                    {formatSize(file.size_bytes)} ·{" "}
-                    {new Date(file.created_at).toLocaleDateString()}
-                  </span>
+                 <span className="file-meta">
+  {formatSize(file.size_bytes)} ·{" "}
+  {new Date(file.created_at).toLocaleDateString()} · Uploaded by{" "}
+  {file.owner_name}
+</span>
                 </div>
 
                 <div className="file-actions">

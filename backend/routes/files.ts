@@ -13,6 +13,7 @@ const router = Router();
 interface FileRecord {
   id: number;
   owner_id: number;
+  owner_name: string;
   original_name: string;
   stored_name: string;
   mime_type: string;
@@ -82,10 +83,17 @@ router.get(
       const hasViewAll = user.permissions.includes("files:view_all");
 
       const query = hasViewAll
-        ? `SELECT id, owner_id, original_name, mime_type, size_bytes, file_type, download_token, created_at
-           FROM files ORDER BY created_at DESC`
-        : `SELECT id, owner_id, original_name, mime_type, size_bytes, file_type, download_token, created_at
-           FROM files WHERE owner_id = $1 ORDER BY created_at DESC`;
+        ? `SELECT f.id, f.owner_id, f.original_name, f.mime_type, f.size_bytes,
+                  f.file_type, f.download_token, f.created_at, u.name AS owner_name
+           FROM files f
+           JOIN users u ON f.owner_id = u.id
+           ORDER BY f.created_at DESC`
+        : `SELECT f.id, f.owner_id, f.original_name, f.mime_type, f.size_bytes,
+                  f.file_type, f.download_token, f.created_at, u.name AS owner_name
+           FROM files f
+           JOIN users u ON f.owner_id = u.id
+           WHERE f.owner_id = $1
+           ORDER BY f.created_at DESC`;
       const params = hasViewAll ? [] : [user.id];
 
       const result = await pool.query(query, params);
