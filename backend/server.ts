@@ -12,6 +12,7 @@ import { sendNotificationEmail } from "./services/emailService";
 import { getUserProfile, updateUserProfile, getUserById, updatePassword } from "./repositories/profile.repository";
 import { updateProfileSchema, changePasswordSchema,} from "./validation/profileValidation";
 import { getPermissionsForRole } from "./repositories/role.repository";
+import { verifyToken } from "./middleware/verifyToken";
 import {
   createActivity,
   getActivitiesByUser
@@ -34,6 +35,7 @@ import {
   assignPermissionToRoleSchema,
 } from "./validation/rbacValidation";
 import { requirePermission, requireRole } from "./middleware/requirePermission";
+import filesRouter from "./routes/files";
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -57,6 +59,7 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(logger);
+app.use("/files", filesRouter);
 
 app.get("/", async (req: Request, res: Response) => {
     try {
@@ -269,23 +272,6 @@ app.post("/refresh", async (req: Request, res: Response, next: NextFunction) => 
   }
 });
 
-function verifyToken(req: Request, res: Response, next: NextFunction) {
-  const authHeader = req.headers.authorization;
-
-  if (!authHeader) {
-    return res.status(401).json("Access denied");
-  }
-
-  const token = authHeader.split(" ")[1];
-
-  try {
-    const verified = jwt.verify(token, process.env.JWT_SECRET!)as any;
-    (req as any).user = verified;
-    next();
-  } catch (err) {
-    return res.status(401).json("Invalid token");
-  }
-}
 // ---------- ROLES ----------
 
 app.get("/roles", verifyToken, requirePermission("roles:manage"), async (req, res, next) => {
