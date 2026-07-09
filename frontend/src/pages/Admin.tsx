@@ -14,7 +14,6 @@ function Admin() {
   title,
   message,
 });
-
     alert("Notification Created");
 
     setTitle("");
@@ -38,7 +37,7 @@ function Admin() {
     <Navbar/>
     <div className="admin-container">
       <div className="admin-card">
-      <h1 className="admin-title">Admin Page</h1>
+      <h1 className="admin-title">Admin Announcement</h1>
 
       <h2 className="admin-subtitle">Create Notification</h2>
       <div className="admin-form">

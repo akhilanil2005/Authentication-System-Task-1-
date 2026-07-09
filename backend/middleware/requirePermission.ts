@@ -26,7 +26,6 @@ export function requirePermission(requiredPermission: string) {
   };
 }
 
-// Convenience: check role directly, for simpler cases (e.g. admin-only routes)
 export function requireRole(...allowedRoles: string[]) {
   return (req: Request, res: Response, next: NextFunction) => {
     const user = (req as any).user as AuthenticatedUser | undefined;

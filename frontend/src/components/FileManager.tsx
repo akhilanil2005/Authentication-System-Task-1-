@@ -16,6 +16,9 @@ function FileManager() {
   const { user } = useSelector((state: RootState) => state.auth);
 
   const [previewUrls, setPreviewUrls] = useState<Record<number, string>>({});
+  const [pendingDeleteIds, setPendingDeleteIds] = useState<Set<number>>(new Set());
+  const [deleteErrorId, setDeleteErrorId] = useState<number | null>(null);
+  const [confirmTarget, setConfirmTarget] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
     dispatch(fetchFiles());
@@ -55,6 +58,11 @@ function FileManager() {
 
   const canDelete = user?.permissions?.includes("files:delete");
 
+  // Regular users only see their own uploads; admins see everything.
+  const isAdmin = user?.role === "admin";
+ const visibleItems = (isAdmin ? items : items.filter((f) => Number(f.owner_id) === Number(user?.id))).filter(
+  (f) => !pendingDeleteIds.has(f.id)
+);
   const handleDownload = async (token: string, originalName: string) => {
     try {
       const response = await api.get(`/files/download/${token}`, {
@@ -73,24 +81,52 @@ function FileManager() {
     }
   };
 
-  const handleDelete = (id: number, originalName: string) => {
-    if (!confirm(`Delete "${originalName}"? This cannot be undone.`)) return;
-    dispatch(deleteFile(id));
+  const requestDelete = (id: number, originalName: string) => {
+    setConfirmTarget({ id, name: originalName });
+  };
+
+  const cancelDelete = () => {
+    setConfirmTarget(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmTarget) return;
+    const { id } = confirmTarget;
+    setConfirmTarget(null);
+
+    // Optimistically hide the file right away.
+    setPendingDeleteIds((prev) => new Set(prev).add(id));
+    setDeleteErrorId(null);
+
+    const result = await dispatch(deleteFile(id));
+
+    if (deleteFile.rejected.match(result)) {
+      // Revert: bring the file back and flag the error.
+      setPendingDeleteIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      setDeleteErrorId(id);
+    }
   };
 
   if (loading) return <p>Loading files...</p>;
 
   return (
     <div className="file-manager">
-      <h3 className="file-drop-zone">Files</h3>
+      <h3 className="file-drop-zone">{isAdmin ? "Files" : "My Files"}</h3>
       {error && <p className="error">{error}</p>}
+      {deleteErrorId !== null && (
+        <p className="error">Failed to delete file. Please try again.</p>
+      )}
 
-      {items.length === 0 ? (
+      {visibleItems.length === 0 ? (
         <p className="file-drop-zone">No files uploaded yet.</p>
       ) : (
         <ul className="file-list">
-          {items.map((file) => {
-            const isOwner = file.owner_id === user?.id;
+          {visibleItems.map((file) => {
+           const isOwner = Number(file.owner_id) === Number(user?.id);
             const showDelete = isOwner || canDelete;
 
             return (
@@ -127,7 +163,7 @@ function FileManager() {
                   {showDelete && (
                     <button
                       className="danger"
-                      onClick={() => handleDelete(file.id, file.original_name)}
+                      onClick={() => requestDelete(file.id, file.original_name)}
                     >
                       Delete
                     </button>
@@ -137,6 +173,26 @@ function FileManager() {
             );
           })}
         </ul>
+      )}
+
+      {confirmTarget && (
+        <div className="confirm-modal-overlay" onClick={cancelDelete}>
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h4 className="confirm-modal-title">Delete file</h4>
+            <p className="confirm-modal-message">
+              Are you sure you want to delete <strong>{confirmTarget.name}</strong>?
+              This action cannot be undone.
+            </p>
+            <div className="confirm-modal-actions">
+              <button className="confirm-modal-cancel" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button className="confirm-modal-delete" onClick={confirmDelete}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

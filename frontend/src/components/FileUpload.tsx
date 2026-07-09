@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { uploadFile, clearFileError, resetUploadProgress } from "../features/files/filesSlice";
 import type { RootState, AppDispatch } from "../app/store";
@@ -19,14 +19,20 @@ const ALLOWED_TYPES = [
 
 function FileUpload() {
   const dispatch = useDispatch<AppDispatch>();
-  const { uploading, uploadProgress, error } = useSelector(
-    (state: RootState) => state.files
-  );
+  const { uploading, error } = useSelector((state: RootState) => state.files);
 
   const [isDragging, setIsDragging] = useState(false);
   const [progress, setProgress] = useState(0);
   const [validationError, setValidationError] = useState("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [toast, setToast] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!toast) return;
+    const timer = setTimeout(() => setToast(null), 3000);
+    return () => clearTimeout(timer);
+  }, [toast]);
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_SIZE_BYTES) {
@@ -38,42 +44,51 @@ function FileUpload() {
     return null;
   };
 
-  const handleFile = useCallback(
-    (file: File) => {
-      setValidationError("");
-      dispatch(clearFileError());
+  const handleSelect = useCallback((file: File) => {
+    setValidationError("");
+    dispatch(clearFileError());
 
-      const validationMsg = validateFile(file);
-      if (validationMsg) {
-        setValidationError(validationMsg);
-        return;
-      }
+    const validationMsg = validateFile(file);
+    if (validationMsg) {
+      setValidationError(validationMsg);
+      setSelectedFile(null);
+      return;
+    }
 
+    setSelectedFile(file);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [dispatch]);
+
+  const handleUploadClick = () => {
+    if (!selectedFile) {
+      setToast("Please select a file before uploading.");
+      return;
+    }
+
+    setProgress(0);
+    dispatch(
+      uploadFile({
+        file: selectedFile,
+        onProgress: (percent) => setProgress(percent),
+      })
+    ).finally(() => {
+      dispatch(resetUploadProgress());
       setProgress(0);
-      dispatch(
-        uploadFile({
-          file,
-          onProgress: (percent) => setProgress(percent),
-        })
-      ).finally(() => {
-        dispatch(resetUploadProgress());
-        setProgress(0);
-        if (inputRef.current) inputRef.current.value = "";
-      });
-    },
-    [dispatch]
-  );
+      setSelectedFile(null);
+      if (inputRef.current) inputRef.current.value = "";
+    });
+  };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     setIsDragging(false);
     const file = e.dataTransfer.files?.[0];
-    if (file) handleFile(file);
+    if (file) handleSelect(file);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) handleFile(file);
+    if (file) handleSelect(file);
   };
 
   return (
@@ -100,6 +115,19 @@ function FileUpload() {
         </p>
       </div>
 
+      {selectedFile && !uploading && (
+        <div className="file-selected-row">
+          <span className="file-selected-name">{selectedFile.name}</span>
+          <button
+            type="button"
+            className="upload-confirm-btn"
+            onClick={handleUploadClick}
+          >
+            Upload
+          </button>
+        </div>
+      )}
+
       {uploading && (
         <div className="upload-progress">
           <div className="upload-progress-bar" style={{ width: `${progress}%` }} />
@@ -109,6 +137,8 @@ function FileUpload() {
 
       {validationError && <p className="error">{validationError}</p>}
       {error && <p className="error">{error}</p>}
+
+      {toast && <div className="toast-notification">{toast}</div>}
     </div>
   );
 }

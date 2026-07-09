@@ -36,6 +36,7 @@ import {
 } from "./validation/rbacValidation";
 import { requirePermission, requireRole } from "./middleware/requirePermission";
 import filesRouter from "./routes/files";
+import searchRoutes from "./routes/search";
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
@@ -44,6 +45,7 @@ const authLimiter = rateLimit({
 });
 
 const app = express();
+app.locals.pool = pool;
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
@@ -60,6 +62,7 @@ app.use(cors({
 app.use(express.json());
 app.use(logger);
 app.use("/files", filesRouter);
+app.use("/api", searchRoutes);
 
 app.get("/", async (req: Request, res: Response) => {
     try {
@@ -126,7 +129,6 @@ app.post("/login", authLimiter, async (req: Request, res: Response, next: NextFu
         message: error.details[0].message,
   });
 } 
-//console.log("BODY:", req.body);
         const { email, password } = req.body;
         const dbName = await pool.query("SELECT current_database()");
 //console.log("Database:", dbName.rows[0]);
@@ -342,6 +344,13 @@ app.put("/users/:id/role", verifyToken, requirePermission("roles:manage"), async
     const userId = Number(req.params.id);
     const { roleId } = req.body;
     const result = await roleService.assignRoleToUser(userId, roleId);
+
+    await createActivity(
+      (req as any).user.id,
+      "ROLE_CHANGE",
+      `Changed role for user ${userId} to role ID ${roleId}`
+    );
+
     res.json(result);
   } catch (err) {
     next(err);
@@ -471,7 +480,18 @@ app.get("/users", verifyToken, requirePermission("users:view"), async (req, res)
 app.delete("/users/:id", verifyToken, requirePermission("users:delete"), async (req, res, next) => {
   try {
     const id = Number(req.params.id);
+
+    const userResult = await pool.query("SELECT name FROM users WHERE id = $1", [id]);
+    const deletedUserName = userResult.rows[0]?.name || `User #${id}`;
+
     await pool.query("DELETE FROM users WHERE id = $1", [id]);
+
+    await createActivity(
+      (req as any).user.id,
+      "USER_DELETE",
+      `Deleted user: ${deletedUserName}`
+    );
+
     res.json({ message: "User deleted" });
   } catch (err) {
     next(err);
@@ -655,34 +675,31 @@ if (userId === "all") {
 app.get("/notifications/:userId", verifyToken, async (req, res) => {
   try {
     const userId = Number(req.params.userId);
-
     const page = Number(req.query.page) || 1;
-const limit = Number(req.query.limit) || 5;
-const offset = (page -1) * limit;
+    const limit = Number(req.query.limit) || 5;
+    const search = (req.query.search as string) || "";
+    const { isRead } = req.query;
 
-const { isRead } = req.query;
+    let notifications, totalCount;
 
-let notifications;
+    if (isRead !== undefined) {
+      notifications = await getNotificationsByStatus(userId, isRead === "true");
+      totalCount = notifications.length;
+    } else {
+      const result = await getNotificationsByUser(userId, page, limit, search);
+      notifications = result.notifications;
+      totalCount = result.totalCount;
+    }
 
-if (isRead !== undefined) {
-  notifications = await getNotificationsByStatus(
-    userId,
-    isRead === "true"
-  );
-} else {
-  notifications = await getNotificationsByUser(
-    userId,
-    page,
-    limit
-  );
-}
+    const totalPages = Math.max(1, Math.ceil(totalCount / limit));
 
-res.json({
-  page,
-  limit,
-  notifications,
-});
-
+    res.json({
+      page,
+      limit,
+      totalCount,
+      totalPages,
+      notifications,
+    });
   } catch (error) {
     res.status(500).json({
       message: "Failed to fetch notifications",

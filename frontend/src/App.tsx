@@ -17,6 +17,7 @@ import RoleManagement from "./pages/RoleManagement";
 import PermissionManagement from "./pages/PermissionManagement";
 import UserManagement from "./pages/UserManagement";
 import Files from "./pages/Files";
+import GlobalSearch from "./pages/GlobalSearch";
 
 function App() {
   const dispatch = useDispatch<AppDispatch>();
@@ -104,6 +105,14 @@ function App() {
     <Files />
   </ProtectedRoute>
 } />
+        <Route
+  path="/search"
+  element={
+    <ProtectedRoute requiredPermission="search:read">
+      <GlobalSearch />
+    </ProtectedRoute>
+  }
+/>
       </Routes>
     </BrowserRouter>
   );

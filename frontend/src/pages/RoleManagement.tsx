@@ -74,7 +74,6 @@ function RoleManagement() {
 
           {/* Create new role */}
           <div className="rbac-card">
-            <div className="rbac-card">
             <h3>Create Role</h3>
             <div className="rbac-form-row">
               <input
@@ -92,7 +91,6 @@ function RoleManagement() {
               <button className="rbac-btn-sm primary" onClick={handleCreateRole}>
                 Create Role
               </button>
-            </div>
             </div>
           </div>
 

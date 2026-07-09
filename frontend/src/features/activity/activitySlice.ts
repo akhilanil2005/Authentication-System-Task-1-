@@ -4,6 +4,7 @@ import axios from "../../api/axios";
 export interface Activity {
   id: number;
   action: string;
+  details: string;
   created_at: string;
 }
 

@@ -48,8 +48,6 @@ type UserData = {
   permissions: string[];
 };
 
-const hasToken = !!localStorage.getItem("token");
-
 const authSlice = createSlice({
   name: "auth",
 
@@ -59,7 +57,7 @@ const authSlice = createSlice({
     userId: Number(localStorage.getItem("userId")) || null,
     user: null as UserData | null,
     loading: false,
-    profileLoading: hasToken,
+    profileLoading: false,
     error: null as string | null,
   },
 

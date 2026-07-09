@@ -13,7 +13,7 @@ export interface FileRecord {
   file_type: FileCategory;
   download_token: string;
   created_at: string;
-}
+} 
 export const uploadFile = createAsyncThunk<
   FileRecord,
   { file: File; onProgress?: (percent: number) => void },

@@ -14,12 +14,14 @@ export interface NotificationState {
   notifications: Notification[];
   loading: boolean;
   error: string | null;
+  totalPages: number;
 }
 
 const initialState: NotificationState = {
   notifications: [],
   loading: false,
   error: null,
+  totalPages: 1,
 };
 
 export const fetchNotifications = createAsyncThunk(
@@ -27,15 +29,16 @@ export const fetchNotifications = createAsyncThunk(
   async ({
     userId,
     page,
+    search = "",
   }: {
     userId: number;
     page: number;
+    search?: string;
   }) => {
     const response = await axios.get(
-  `/notifications/${userId}?page=${page}&limit=5`
-);
-
-return response.data.notifications;
+      `/notifications/${userId}?page=${page}&limit=5&search=${encodeURIComponent(search)}`
+    );
+    return response.data;
   }
 );
 
@@ -57,9 +60,10 @@ const notificationSlice = createSlice({
         state.loading = true;
       })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
-        state.loading = false;
-        state.notifications = action.payload;
-      })
+  state.loading = false;
+  state.notifications = action.payload.notifications;
+  state.totalPages = action.payload.totalPages;
+})
       .addCase(fetchNotifications.rejected, (state) => {
         state.loading = false;
         state.error = "Failed to load notifications";

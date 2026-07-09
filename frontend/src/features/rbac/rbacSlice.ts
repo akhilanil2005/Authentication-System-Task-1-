@@ -47,6 +47,10 @@ export const deleteRole = createAsyncThunk("rbac/deleteRole", async (id: number)
   await api.delete(`/roles/${id}`);
   return id;
 });
+  export const deleteUser = createAsyncThunk("rbac/deleteUser", async (id: number) => {
+  await api.delete(`/users/${id}`);
+  return id;
+});
 
 export const assignRoleToUser = createAsyncThunk(
   "rbac/assignRoleToUser",
@@ -154,7 +158,10 @@ const rbacSlice = createSlice({
       })
       .addCase(fetchRolePermissions.fulfilled, (state, action) => {
         state.rolePermissions[action.payload.roleId] = action.payload.permissions;
-      });
+      })
+      .addCase(deleteUser.fulfilled, (state, action) => {
+  state.users = state.users.filter((u) => u.id !== action.payload);
+})     
   },
 });
 

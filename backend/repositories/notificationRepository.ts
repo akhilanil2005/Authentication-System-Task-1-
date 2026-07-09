@@ -18,20 +18,31 @@ export const createNotification = async (
 export const getNotificationsByUser = async (
   userId: number,
   page: number,
-  limit: number
+  limit: number,
+  search: string = ""
 ) => {
   const offset = (page - 1) * limit;
 
   const result = await pool.query(
-    `SELECT * FROM notifications
+    `SELECT *, COUNT(*) OVER() AS total_count
+     FROM notifications
      WHERE user_id = $1
+       AND (title ILIKE $2 OR message ILIKE $2)
      ORDER BY created_at DESC
-     LIMIT $2
-     OFFSET $3`,
-    [userId, limit, offset]
+     LIMIT $3
+     OFFSET $4`,
+    [userId, `%${search}%`, limit, offset]
   );
 
-  return result.rows;
+  const totalCount = result.rows[0]
+    ? Number(result.rows[0].total_count)
+    : 0;
+
+  const notifications = result.rows.map(
+    ({ total_count, ...rest }: { total_count: number; [key: string]: any }) => rest
+  );
+
+  return { notifications, totalCount };
 };
 
 export const getNotificationsByStatus = async (

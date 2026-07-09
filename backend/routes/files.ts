@@ -25,10 +25,7 @@ interface FileRecord {
 }
 
 // --- UPLOAD ---
-router.post(
-  "/upload",
-  verifyToken,
-  requirePermission("files:upload"),
+router.post("/upload",verifyToken,requirePermission("files:upload"),
   (req: Request, res: Response) => {
     upload.single("file")(req, res, async (err: unknown) => {
       if (err) {
@@ -44,26 +41,30 @@ router.post(
         const downloadToken = crypto.randomBytes(32).toString("hex");
 
         const result = await pool.query(
-          `INSERT INTO files
-            (owner_id, original_name, stored_name, mime_type, size_bytes, file_type, storage_path, download_token)
-           VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-           RETURNING id, original_name, mime_type, size_bytes, file_type, download_token, created_at`,
-          [
-            userId,
-            req.file.originalname,
-            req.file.filename,
-            req.file.mimetype,
-            req.file.size,
-            req.file.fileType,
-            path.relative(UPLOAD_DIR, req.file.path),
-            downloadToken,
-          ]
-        );
+  `INSERT INTO files
+    (owner_id, original_name, stored_name, mime_type, size_bytes, file_type, storage_path, download_token)
+   VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+   RETURNING id, owner_id, original_name, mime_type, size_bytes, file_type, download_token, created_at`,
+  [
+    userId,
+    req.file.originalname,
+    req.file.filename,
+    req.file.mimetype,
+    req.file.size,
+    req.file.fileType,
+    path.relative(UPLOAD_DIR, req.file.path),
+    downloadToken,
+  ]
+);
 
-        await createActivity(userId, "FILE_UPLOAD", req.file.originalname);
+await createActivity(userId, "FILE_UPLOAD", req.file.originalname);
 
-        res.status(201).json(result.rows[0]);
-      } catch (dbErr) {
+res.status(201).json({
+  ...result.rows[0],
+  owner_name: (req as any).user.name,
+});
+      } 
+      catch (dbErr) {
         fs.unlink(req.file.path, () => {});
         console.error(dbErr);
         res.status(500).json({ message: "Failed to save file metadata" });
