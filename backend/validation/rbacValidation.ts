@@ -11,7 +11,7 @@ export const updateRoleSchema = Joi.object({
 });
 
 export const createPermissionSchema = Joi.object({
-  name: Joi.string().trim().pattern(/^[a-z]+:[a-z]+$/).required().messages({
+  name: Joi.string().trim().pattern(/^[a-z]+:[a-z_]+$/).required().messages({
     "string.pattern.base": "Permission name must follow 'resource:action' format, e.g. 'users:edit'",
   }),
   description: Joi.string().trim().max(255).allow("", null),

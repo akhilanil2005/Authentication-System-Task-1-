@@ -104,10 +104,24 @@ if (existingUser.rows.length > 0) {
         const salt = await bcrypt.genSalt(10);
         const hashedPassword = await bcrypt.hash(password, salt);
 
-        const result = await pool.query(
-            "INSERT INTO users(name,email,password) VALUES($1,$2,$3) RETURNING *",
-            [name, email, hashedPassword]
-        );
+const defaultRoleResult = await pool.query(
+  "SELECT id FROM roles WHERE name = $1",
+  ["user"]
+);
+
+if (defaultRoleResult.rows.length === 0) {
+  return res.status(500).json({
+    success: false,
+    message: "Default role not configured",
+  });
+}
+
+const defaultRoleId = defaultRoleResult.rows[0].id;
+
+const result = await pool.query(
+  "INSERT INTO users(name,email,password,role_id) VALUES($1,$2,$3,$4) RETURNING *",
+  [name, email, hashedPassword, defaultRoleId]
+);
         await createActivity(
   result.rows[0].id,
   "REGISTER",
@@ -763,6 +777,7 @@ app.get("/activity-logs/:userId", async (req: Request, res: Response) => {
     });
   }
 });
+
 app.use((
   err: any,
   req: Request,
