@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import SearchBar from '../components/search/SearchBar';
 import SearchFilters from '../components/search/SearchFilters';
 import SearchResults from '../components/search/SearchResults';
+import { toast } from "react-toastify";
 import { useGlobalSearchQuery, useLazyGlobalSearchQuery, useDeleteFileMutation, type SearchResponse } from '../features/search/searchApiSlice';
 
 type EntityKey = 'files' | 'users' | 'roles';

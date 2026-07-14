@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
 import type { RootState, AppDispatch } from "../app/store";
 import { fetchAllUsers, fetchRoles, assignRoleToUser, deleteUser } from "../features/rbac/rbacSlice";
 import Navbar from "../components/Navbar";
@@ -9,7 +10,6 @@ function UserManagement() {
   const { users, roles, loading, error } = useSelector((s: RootState) => s.rbac);
   const currentUser = useSelector((s: RootState) => s.auth.user);
   const [pendingChanges, setPendingChanges] = useState<Record<number, number>>({});
-  const [toast, setToast] = useState<{ message: string; type: "success" | "error" } | null>(null);
   const [confirmTarget, setConfirmTarget] = useState<{ id: number; name: string } | null>(null);
 
   const isAdmin = currentUser?.role === "admin";
@@ -25,12 +25,6 @@ function UserManagement() {
     dispatch(fetchRoles());
   }, [dispatch]);
 
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(timer);
-  }, [toast]);
-
   const handleRoleSelect = (userId: number, roleId: number) => {
     setPendingChanges((prev) => ({ ...prev, [userId]: roleId }));
   };
@@ -42,7 +36,7 @@ function UserManagement() {
     const result = await dispatch(assignRoleToUser({ userId, roleId }));
 
     if (assignRoleToUser.rejected.match(result)) {
-      setToast({ message: `Failed to update role for ${userName}.`, type: "error" });
+      toast.error(`Failed to update role for ${userName}.`);
       return;
     }
 
@@ -52,7 +46,7 @@ function UserManagement() {
       delete next[userId];
       return next;
     });
-    setToast({ message: `Role updated for ${userName}.`, type: "success" });
+    toast.success(`Role updated for ${userName}.`);
   };
 
   const requestDelete = (id: number, name: string) => {
@@ -71,11 +65,11 @@ function UserManagement() {
     const result = await dispatch(deleteUser(id));
 
     if (deleteUser.rejected.match(result)) {
-      setToast({ message: `Failed to delete ${name}.`, type: "error" });
+      toast.error(`Failed to delete ${name}.`);
       return;
     }
 
-    setToast({ message: `${name} was deleted.`, type: "success" });
+    toast.success(`${name} was deleted.`);
   };
 
   return (
@@ -197,12 +191,6 @@ function UserManagement() {
               </button>
             </div>
           </div>
-        </div>
-      )}
-
-      {toast && (
-        <div className={`toast-notification ${toast.type === "success" ? "toast-success" : ""}`}>
-          {toast.message}
         </div>
       )}
     </div>

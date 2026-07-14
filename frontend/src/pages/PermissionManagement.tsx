@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
 import type { RootState, AppDispatch } from "../app/store";
 import {
   fetchPermissions,
@@ -15,6 +16,7 @@ function PermissionManagement() {
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [formError, setFormError] = useState("");
+  const [confirmTarget, setConfirmTarget] = useState<{ id: number; name: string } | null>(null);
 
   useEffect(() => {
     dispatch(fetchPermissions());
@@ -29,15 +31,35 @@ function PermissionManagement() {
     const result = await dispatch(createPermission({ name: name.trim(), description }));
     if (createPermission.rejected.match(result)) {
       setFormError("Failed to create permission — it may already exist.");
+      toast.error("Failed to create permission.");
       return;
     }
+    toast.success(`Permission "${name.trim()}" created.`);
     setName("");
     setDescription("");
   };
 
-  const handleDelete = async (id: number, permName: string) => {
-    if (!confirm(`Delete permission "${permName}"? This removes it from all roles.`)) return;
-    await dispatch(deletePermission(id));
+  const requestDelete = (id: number, permName: string) => {
+    setConfirmTarget({ id, name: permName });
+  };
+
+  const cancelDelete = () => {
+    setConfirmTarget(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmTarget) return;
+    const { id, name: permName } = confirmTarget;
+    setConfirmTarget(null);
+
+    const result = await dispatch(deletePermission(id));
+
+    if (deletePermission.rejected.match(result)) {
+      toast.error(`Failed to delete "${permName}".`);
+      return;
+    }
+
+    toast.success(`Permission "${permName}" deleted.`);
   };
 
   return (
@@ -89,7 +111,7 @@ function PermissionManagement() {
                   <div className="rbac-actions">
                     <button
                       className="rbac-btn-sm danger"
-                      onClick={() => handleDelete(perm.id, perm.name)}
+                      onClick={() => requestDelete(perm.id, perm.name)}
                     >
                       Delete
                     </button>
@@ -100,6 +122,26 @@ function PermissionManagement() {
           </div>
         </div>
       </div>
+
+      {confirmTarget && (
+        <div className="confirm-modal-overlay" onClick={cancelDelete}>
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h4 className="confirm-modal-title">Delete permission</h4>
+            <p className="confirm-modal-message">
+              Are you sure you want to delete <strong>{confirmTarget.name}</strong>?
+              This removes it from all roles that currently have it assigned.
+            </p>
+            <div className="confirm-modal-actions">
+              <button className="confirm-modal-cancel" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button className="confirm-modal-delete" onClick={confirmDelete}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

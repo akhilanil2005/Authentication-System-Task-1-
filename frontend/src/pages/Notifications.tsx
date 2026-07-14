@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
 import { fetchNotifications, markNotificationRead } from "../features/notifications/notificationSlice";
 import type { RootState, AppDispatch } from "../app/store";
 import { socket } from "../socket";
@@ -14,6 +15,7 @@ const Notifications = () => {
   const userId = useSelector((state: RootState) => state.auth.userId);
   const [page, setPage] = useState(1);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState<{ id: number; title: string } | null>(null);
 
   const { notifications, loading, error, totalPages } = useSelector(
     (state: RootState) => state.notifications
@@ -21,33 +23,50 @@ const Notifications = () => {
 
   const debouncedSearch = useDebounce(search, 400);
 
-  // main fetch — runs on page change or debounced search change
   useEffect(() => {
     if (userId) {
       dispatch(fetchNotifications({ userId, page, search: debouncedSearch }));
     }
   }, [dispatch, page, userId, debouncedSearch]);
 
-  // reset to page 1 whenever the debounced search term changes
   useEffect(() => {
     setPage(1);
   }, [debouncedSearch]);
 
-  // socket listener for realtime notifications
   useEffect(() => {
-    socket.on("newNotification", (notification) => {
-      alert(`New Notification: ${notification.title}`);
-      if (userId) {
-        dispatch(fetchNotifications({ userId, page, search: debouncedSearch }));
-      }
-    });
+  socket.on("newNotification", (notification) => {
+    toast.info(`New notification: ${notification.title}`);
+    setPage(1);
+    if (userId) {
+      dispatch(fetchNotifications({ userId, page: 1, search: debouncedSearch }));
+    }
+  });
 
-    return () => {
-      socket.off("newNotification");
-    };
-  }, [dispatch, page, userId, debouncedSearch]);
+  return () => {
+    socket.off("newNotification");
+  };
+}, [dispatch, userId, debouncedSearch]);
 
-  // only show "Loading..." on the very first load, not on every refetch
+  useEffect(() => {
+  const doJoin = () => {
+    if (userId) {
+      console.log("Joining room for userId:", userId);
+      socket.emit("join", userId);
+    }
+  };
+
+  // Join immediately if already connected
+  if (socket.connected) {
+    doJoin();
+  }
+
+  // Also join whenever the socket (re)connects
+  socket.on("connect", doJoin);
+
+  return () => {
+    socket.off("connect", doJoin);
+  };
+}, [userId]);
   useEffect(() => {
     if (!loading && !hasLoadedOnce) setHasLoadedOnce(true);
   }, [loading, hasLoadedOnce]);
@@ -58,10 +77,36 @@ const Notifications = () => {
     return !notification.is_read;
   });
 
-  const handleDelete = async (id: number) => {
-    await axios.delete(`/notifications/${id}`);
-    if (userId) {
-      dispatch(fetchNotifications({ userId, page, search: debouncedSearch }));
+  const handleMarkAsRead = async (id: number) => {
+    const result = await dispatch(markNotificationRead(id));
+    if (markNotificationRead.rejected.match(result)) {
+      toast.error("Failed to mark as read.");
+    } else {
+      toast.success("Marked as read.");
+    }
+  };
+
+  const requestDelete = (id: number, title: string) => {
+    setConfirmTarget({ id, title });
+  };
+
+  const cancelDelete = () => {
+    setConfirmTarget(null);
+  };
+
+  const confirmDelete = async () => {
+    if (!confirmTarget) return;
+    const { id, title } = confirmTarget;
+    setConfirmTarget(null);
+
+    try {
+      await axios.delete(`/notifications/${id}`);
+      if (userId) {
+        dispatch(fetchNotifications({ userId, page, search: debouncedSearch }));
+      }
+      toast.success(`"${title}" deleted.`);
+    } catch (err) {
+      toast.error("Failed to delete notification.");
     }
   };
 
@@ -107,18 +152,14 @@ const Notifications = () => {
                   {!notification.is_read && (
                     <button
                       className="read-btn"
-                      onClick={() => dispatch(markNotificationRead(notification.id))}
+                      onClick={() => handleMarkAsRead(notification.id)}
                     >
                       Mark as Read
                     </button>
                   )}
                   <button
                     className="delete-btn"
-                    onClick={() => {
-                      if (window.confirm("Delete notification?")) {
-                        handleDelete(notification.id);
-                      }
-                    }}
+                    onClick={() => requestDelete(notification.id, notification.title)}
                   >
                     Delete
                   </button>
@@ -141,6 +182,26 @@ const Notifications = () => {
             </button>
           </div>
         </>
+      )}
+
+      {confirmTarget && (
+        <div className="confirm-modal-overlay" onClick={cancelDelete}>
+          <div className="confirm-modal" onClick={(e) => e.stopPropagation()}>
+            <h4 className="confirm-modal-title">Delete notification</h4>
+            <p className="confirm-modal-message">
+              Are you sure you want to delete <strong>{confirmTarget.title}</strong>?
+              This action cannot be undone.
+            </p>
+            <div className="confirm-modal-actions">
+              <button className="confirm-modal-cancel" onClick={cancelDelete}>
+                Cancel
+              </button>
+              <button className="confirm-modal-delete" onClick={confirmDelete}>
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

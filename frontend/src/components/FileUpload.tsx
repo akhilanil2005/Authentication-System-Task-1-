@@ -1,9 +1,10 @@
-import { useState, useRef, useCallback, useEffect } from "react";
+import { useState, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
 import { uploadFile, clearFileError, resetUploadProgress } from "../features/files/filesSlice";
 import type { RootState, AppDispatch } from "../app/store";
 
-const MAX_SIZE_BYTES = 10 * 1024 * 1024; // 10MB, matches backend limit
+const MAX_SIZE_BYTES = 10 * 1024 * 1024;
 const ALLOWED_TYPES = [
   "image/jpeg",
   "image/png",
@@ -25,14 +26,7 @@ function FileUpload() {
   const [progress, setProgress] = useState(0);
   const [validationError, setValidationError] = useState("");
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
-  const [toast, setToast] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(timer);
-  }, [toast]);
 
   const validateFile = (file: File): string | null => {
     if (file.size > MAX_SIZE_BYTES) {
@@ -59,24 +53,32 @@ function FileUpload() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [dispatch]);
 
-  const handleUploadClick = () => {
+  const handleUploadClick = async () => {
     if (!selectedFile) {
-      setToast("Please select a file before uploading.");
+      toast.error("Please select a file before uploading.");
       return;
     }
 
     setProgress(0);
-    dispatch(
+    const fileName = selectedFile.name;
+
+    const result = await dispatch(
       uploadFile({
         file: selectedFile,
         onProgress: (percent) => setProgress(percent),
       })
-    ).finally(() => {
-      dispatch(resetUploadProgress());
-      setProgress(0);
-      setSelectedFile(null);
-      if (inputRef.current) inputRef.current.value = "";
-    });
+    );
+
+    dispatch(resetUploadProgress());
+    setProgress(0);
+    setSelectedFile(null);
+    if (inputRef.current) inputRef.current.value = "";
+
+    if (uploadFile.rejected.match(result)) {
+      toast.error(`Failed to upload "${fileName}".`);
+    } else {
+      toast.success(`"${fileName}" uploaded successfully.`);
+    }
   };
 
   const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
@@ -137,8 +139,6 @@ function FileUpload() {
 
       {validationError && <p className="error">{validationError}</p>}
       {error && <p className="error">{error}</p>}
-
-      {toast && <div className="toast-notification">{toast}</div>}
     </div>
   );
 }

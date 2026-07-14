@@ -58,9 +58,12 @@ const notificationSlice = createSlice({
     builder
       .addCase(fetchNotifications.pending, (state) => {
         state.loading = true;
+        state.error = null;
       })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
+  console.log("3. Reducer got:", action.payload);
   state.loading = false;
+  state.error = null;
   state.notifications = action.payload.notifications;
   state.totalPages = action.payload.totalPages;
 })

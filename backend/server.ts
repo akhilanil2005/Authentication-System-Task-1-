@@ -652,7 +652,7 @@ if (userId === "all") {
       message
     );
 
-    io.emit("newNotification", notification);
+    io.to(`user:${user.id}`).emit("newNotification", notification);
   }
 
   return res.status(201).json({
@@ -674,7 +674,7 @@ if (userId === "all") {
   "CREATE_NOTIFICATION",
   `Created notification: ${title}`
 );
-    io.emit("newNotification", notification);
+    io.to(`user:${notification.user_id}`).emit("newNotification", notification);
 
     res.status(201).json(notification);
   } catch (error) {
@@ -682,7 +682,7 @@ if (userId === "all") {
 
   res.status(500).json({
     message: "Failed to create notification"
-  });
+});
 }
 });
 
@@ -797,6 +797,11 @@ app.use((
 });
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
+
+  socket.on("join", (userId) => {
+    console.log(`Socket ${socket.id} joining room: user:${userId}`);
+    socket.join(`user:${userId}`);
+  });
 
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
